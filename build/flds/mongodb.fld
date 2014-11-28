@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE func-lib PUBLIC "-//Railo//DTD CFML Function Library 1.0//EN"
+	"dtd/web-cfmfunctionlibrary_1_0.dtd">
+<!-- http://www.getrailo.com/j2ee/dtd/web-jspfunctionlibrary_1_0.dtd -->
+<func-lib>
+	<flib-version>1.00</flib-version>
+	<short-name>mongodb</short-name>
+	<uri>http://www.opencfmlfoundation.org/mongodb/1_0_0</uri>
+	<display-name>MongoDB functions</display-name>
+	<description></description>
+	
+
+	<function>
+		<name>MongoDBConnect</name>
+		<class 
+			bundle-name="{bundle-name}" 
+			bundle-version="{bundle-version}">railo.extension.mongodb.MongoDBConnect</class>
+		<description>Connects to a MongoDB and pools connection returned</description>
+		<argument>
+			<name>dbName</name>
+			<alias>db,name</alias>
+			<type>String</type>
+			<required>yes</required>
+			<description>Name of the DB to connect.</description>
+		</argument>
+		<argument>
+			<name>host</name>
+			<alias>server</alias>
+			<type>String</type>
+			<required>no</required>
+			<description>host name of the MongoDB</description>
+		</argument>
+		<argument>
+			<name>port</name>
+			<type>numeric</type>
+			<required>no</required>
+			<description>Port of the MongoDB</description>
+		</argument>
+		<return>
+			<type>object</type>
+		</return>
+	</function>
+
+	<function>
+		<name>MongoDBId</name>
+		<class 
+			bundle-name="{bundle-name}" 
+			bundle-version="{bundle-version}">railo.extension.mongodb.MongoDBId</class>
+		<description>Creates a new MongoDB id (ObjectId)</description>
+		<return>
+			<type>object</type>
+		</return>
+	</function>
+	
+	
+	
+</func-lib>

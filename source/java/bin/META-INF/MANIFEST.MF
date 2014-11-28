@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Export-Package: org.opencfmlfoundation.mongodb
+Bundle-ManifestVersion: 2
+Require-Bundle: org.mongodb.mongo-java-driver;bundle-version=2.10.1.RELEASE
