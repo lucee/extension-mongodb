@@ -54,12 +54,12 @@
 
 
   <target name="copy" depends="init" description="copy source file to temp" >
-    <!-- copy the source -->
+    <!-- copy the source
     <copy todir="${temp}">
       <fileset dir="${src}">
         <include name="**/*.java"/>
       </fileset>
-    </copy>
+    </copy> -->
 
 
     <tstamp>
@@ -71,8 +71,12 @@ Built-Date: ${NOW}
 version: "${bundleversion}${build.number}"
 id: "E6634E1A-4CC5-4839-A83C67549ECA8D5B"
 name: "MongoDB Integration"
-description: ""
+description: "MongoDB (from "humongous") is a cross-platform document-oriented database. 
+ Classified as a NoSQL database, MongoDB eschews the traditional table-based relational database structure in favor of JSON-like 
+ documents with dynamic schemas (MongoDB calls the format BSON), making the integration of data in certain types of 
+ applications easier and faster."
 start-bundles: false
+trial: false
 railo-core-version: "5.0.0.021"
 </echo>
 
@@ -83,8 +87,8 @@ railo-core-version: "5.0.0.021"
 
   <target name="compile" depends="copy"
         description="compile the source " >
-    <!-- Compile ACF-Infinspan source -->
-    <javac srcdir="${temp}" target="1.6" destdir="${build}" debug="true" debuglevel="lines,vars,source">
+    <!-- Compile Java source -->
+    <javac srcdir="${src}" target="1.6" destdir="${temp}" debug="true" debuglevel="lines,vars,source">
       <classpath refid="classpath" />
     </javac>
   </target>
@@ -95,7 +99,7 @@ railo-core-version: "5.0.0.021"
  
     <!-- Put everything in ${build} into .jar file -->
     <jar 
-    	jarfile="${dist}/extension/jars/mongodb-extension-${bundleversion}${build.number}.jar" basedir="${build}"  manifest="${src}/META-INF/MANIFEST.MF">
+    	jarfile="${dist}/extension/jars/mongodb-extension-${bundleversion}${build.number}.jar" basedir="${temp}"  manifest="${src}/META-INF/MANIFEST.MF">
       <manifest>
         <attribute name="Bundle-Version" value="${bundleversion}${build.number}"/>
         <attribute name="Built-Date" value="${NOW}"/>
@@ -126,8 +130,15 @@ railo-core-version: "5.0.0.021"
       </fileset>
     </copy>
 
+    <!-- copy the logo -->
+    <copy todir="${dist}/extension/META-INF">
+      <fileset dir="${build}/images">
+        <include name="logo.png"/>
+      </fileset>
+    </copy>
+
     <!-- Zip everything  -->
-     <zip destfile="${dist}/mongodb-extension.re">
+     <zip destfile="${dist}/mongodb-extension-${bundleversion}${build.number}.re">
         <zipfileset dir="${dist}/extension"/>
     </zip>
 		

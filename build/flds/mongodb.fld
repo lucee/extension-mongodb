@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE func-lib PUBLIC "-//Railo//DTD CFML Function Library 1.0//EN"
+<!DOCTYPE func-lib PUBLIC "-//Lucee//DTD CFML Function Library 1.0//EN"
 	"dtd/web-cfmfunctionlibrary_1_0.dtd">
-<!-- http://www.getrailo.com/j2ee/dtd/web-jspfunctionlibrary_1_0.dtd -->
 <func-lib>
 	<flib-version>1.00</flib-version>
 	<short-name>mongodb</short-name>
-	<uri>http://www.opencfmlfoundation.org/mongodb/1_0_0</uri>
+	<uri>http://www.lucee.org/mongodb/1_0_0</uri>
 	<display-name>MongoDB functions</display-name>
 	<description></description>
 	
@@ -14,7 +13,7 @@
 		<name>MongoDBConnect</name>
 		<class 
 			bundle-name="{bundle-name}" 
-			bundle-version="{bundle-version}">railo.extension.mongodb.MongoDBConnect</class>
+			bundle-version="{bundle-version}">org.lucee.mongodb.MongoDBConnect</class>
 		<description>Connects to a MongoDB and pools connection returned</description>
 		<argument>
 			<name>dbName</name>
@@ -45,7 +44,7 @@
 		<name>MongoDBId</name>
 		<class 
 			bundle-name="{bundle-name}" 
-			bundle-version="{bundle-version}">railo.extension.mongodb.MongoDBId</class>
+			bundle-version="{bundle-version}">org.lucee.mongodb.MongoDBId</class>
 		<description>Creates a new MongoDB id (ObjectId)</description>
 		<return>
 			<type>object</type>
