@@ -1,26 +1,26 @@
-package org.opencfmlfoundation.mongodb.support;
+package org.lucee.mongodb.support;
 
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 
-import org.opencfmlfoundation.mongodb.DBCollectionImpl;
-import org.opencfmlfoundation.mongodb.DBObjectImpl;
-import org.opencfmlfoundation.mongodb.support.CollObsSupport.EntryImpl;
+import org.lucee.mongodb.DBCollectionImpl;
+import org.lucee.mongodb.DBObjectImpl;
+import org.lucee.mongodb.support.CollObsSupport.EntryImpl;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBObject;
 
-import railo.runtime.PageContext;
-import railo.runtime.dump.DumpData;
-import railo.runtime.dump.DumpProperties;
-import railo.runtime.exp.PageException;
-import railo.runtime.type.Collection;
-import railo.runtime.type.Struct;
-import railo.runtime.type.Collection.Key;
-import railo.runtime.util.Cast;
+import lucee.runtime.PageContext;
+import lucee.runtime.dump.DumpData;
+import lucee.runtime.dump.DumpProperties;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Collection;
+import lucee.runtime.type.Struct;
+import lucee.runtime.type.Collection.Key;
+import lucee.runtime.util.Cast;
 
 public abstract class DBObjectImplSupport extends CollObsSupport implements Struct {
 

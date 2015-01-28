@@ -1,9 +1,9 @@
-package org.opencfmlfoundation.mongodb.support;
+package org.lucee.mongodb.support;
 
-import railo.runtime.PageContext;
-import railo.runtime.dump.DumpData;
-import railo.runtime.dump.DumpProperties;
-import railo.runtime.dump.DumpTable;
+import lucee.runtime.PageContext;
+import lucee.runtime.dump.DumpData;
+import lucee.runtime.dump.DumpProperties;
+import lucee.runtime.dump.DumpTable;
 
 public abstract class DBImplSupport extends CollObsSupport {
 	

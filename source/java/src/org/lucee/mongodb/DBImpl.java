@@ -1,4 +1,4 @@
-package org.opencfmlfoundation.mongodb;
+package org.lucee.mongodb;
 
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.opencfmlfoundation.mongodb.support.DBImplSupport;
+import org.lucee.mongodb.support.DBImplSupport;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -16,13 +16,13 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.WriteConcern;
 
-import railo.loader.engine.CFMLEngineFactory;
-import railo.loader.util.Util;
-import railo.runtime.PageContext;
-import railo.runtime.exp.PageException;
-import railo.runtime.type.Collection;
-import railo.runtime.type.Objects;
-import railo.runtime.type.Struct;
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.loader.util.Util;
+import lucee.runtime.PageContext;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Collection;
+import lucee.runtime.type.Objects;
+import lucee.runtime.type.Struct;
 
 public class DBImpl extends DBImplSupport implements Collection,Objects {
 
@@ -111,6 +111,15 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 			return remove(key);
 		} catch (PageException e) {
 			return null;
+		}
+	}
+
+	// TODO @Override 
+	public Object remove(Key key, Object defaultValue) {
+		try {
+			return remove(key);
+		} catch (PageException e) {
+			return defaultValue;
 		}
 	}
 

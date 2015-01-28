@@ -1,4 +1,4 @@
-package org.opencfmlfoundation.mongodb.util;
+package org.lucee.mongodb.util;
 
 /**
  *  

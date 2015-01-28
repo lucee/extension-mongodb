@@ -1,7 +1,7 @@
-package org.opencfmlfoundation.mongodb.util;
+package org.lucee.mongodb.util;
 
-import railo.loader.engine.CFMLEngineFactory;
-import railo.runtime.dump.DumpData;
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.runtime.dump.DumpData;
 
 public class SimpleDumpData implements DumpData {
 

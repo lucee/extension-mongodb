@@ -1,9 +1,9 @@
-package org.opencfmlfoundation.mongodb;
+package org.lucee.mongodb;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.opencfmlfoundation.mongodb.support.ObjectSupport;
+import org.lucee.mongodb.support.ObjectSupport;
 
 import com.mongodb.AggregationOutput;
 import com.mongodb.DBObject;

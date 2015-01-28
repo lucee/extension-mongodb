@@ -1,10 +1,10 @@
-package org.opencfmlfoundation.mongodb;
+package org.lucee.mongodb;
 
 import org.bson.types.ObjectId;
 
-import railo.runtime.PageContext;
-import railo.runtime.exp.PageException;
-import railo.runtime.ext.function.Function;
+import lucee.runtime.PageContext;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.ext.function.Function;
 
 public class MongoDBId implements Function {
 

@@ -1,4 +1,4 @@
-package org.opencfmlfoundation.mongodb;
+package org.lucee.mongodb;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -6,13 +6,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.opencfmlfoundation.mongodb.support.DBObjectImplSupport;
+import org.lucee.mongodb.support.DBObjectImplSupport;
 
-import railo.runtime.PageContext;
-import railo.runtime.exp.PageException;
-import railo.runtime.type.Collection;
-import railo.runtime.type.Struct;
-import railo.runtime.type.Collection.Key;
+import lucee.runtime.PageContext;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Collection;
+import lucee.runtime.type.Struct;
+import lucee.runtime.type.Collection.Key;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
@@ -57,6 +57,12 @@ public class DBObjectImpl extends DBObjectImplSupport {
 	@Override
 	public Object removeEL(Key key) {
 		return obj.removeField(key.getString());
+	}
+
+	// TODO was not existing in 4.5 @Override
+	public Object remove(Key key, Object defaultValue) {
+		Object rtn = obj.removeField(key.getString());
+		return rtn==null?defaultValue:rtn;
 	}
 
 	@Override
@@ -175,6 +181,11 @@ public class DBObjectImpl extends DBObjectImplSupport {
 
 	public DBObject getDBObject() {
 		return obj;
+	}
+
+	// dummy that is no longer used in 5.0
+	public long sizeOf() {
+		return 0;
 	}
 
 }

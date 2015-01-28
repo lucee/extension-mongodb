@@ -1,4 +1,4 @@
-package org.opencfmlfoundation.mongodb.util;
+package org.lucee.mongodb.util;
 
 import java.io.PrintStream;
 import java.lang.reflect.InvocationTargetException;
@@ -16,7 +16,7 @@ import org.w3c.dom.Attr;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 
-import railo.loader.engine.CFMLEngineFactory;
+import lucee.loader.engine.CFMLEngineFactory;
 
 /**
  *  
