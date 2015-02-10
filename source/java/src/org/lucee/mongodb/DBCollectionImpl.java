@@ -81,7 +81,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				Array arr = caster.toArray(args[0]);
 				if(arr.size()==0)
 					throw exp.createApplicationException("the array passed to the function aggregate needs at least 1 element");
-				
+
 				Iterator<Object> it = arr.valueIterator();
 				firstArg=toDBObject(it.next());
 				addArgs=new DBObject[arr.size()-1];
@@ -92,9 +92,15 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			}
 			else {
 				firstArg=toDBObject(args[0]);
-				addArgs=new DBObject[len-1];
-				for(int i=1;i<len;i++){
-					addArgs[i-1]=toDBObject(args[i]);
+				// Second argument is array
+				if(len==2 && decision.isArray(args[1])){
+					addArgs=toDBObjectArray(args[1]);
+				}
+				else {
+					addArgs=new DBObject[len-1];
+					for(int i=1;i<len;i++){
+						addArgs[i-1]=toDBObject(args[i]);
+					}
 				}
 			}
 			return toCFML(coll.aggregate(firstArg, addArgs));
