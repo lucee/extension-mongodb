@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project default="clean" basedir="." name="mongodb-extension">
 	<description>
-        Build SpreadSheet Extension
+        Build MongoDB Extension
     </description>
     <!-- set global properties for this build -->
   <property name="bundlename" value="mongodb.extension"/>
   <property name="bundleversion" value="1.0.0."/>
   
-  <property name="railoLoader" location="/Users/mic/Projects/Railo/Source2/railo/railo-java/railo-loader/bin"/>
   <property name="lib" location="source/java/libs"/>
   <property name="src" location="source/java/src"/>
   <property name="build" location="build"/>
@@ -33,7 +32,7 @@
   </scriptdef>
 
   <path id="classpath">
-    <pathelement location="${railoLoader}" />
+    <!-- use the loader project directly <pathelement location="${luceeLoader}" /> -->
     <fileset dir="${lib}">
       <include name="**/*.jar" />
     </fileset>
@@ -77,7 +76,7 @@ description: "MongoDB (from "humongous") is a cross-platform document-oriented d
  applications easier and faster."
 start-bundles: false
 trial: false
-railo-core-version: "5.0.0.021"
+lucee-core-version: "5.0.0.021"
 </echo>
 
 
