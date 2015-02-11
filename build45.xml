@@ -7,7 +7,6 @@
   <property name="bundlename" value="mongodb.extension"/>
   <property name="bundleversion" value="1.0.0."/>
   
-  <property name="luceeLoader" location="/Users/mic/Projects/Lucee/lucee-java/lucee-loader/bin"/>
   <property name="lib" location="source/java/libs"/>
   <property name="src" location="source/java/src"/>
   <property name="build" location="build"/>
@@ -33,7 +32,7 @@
   </scriptdef>
 
   <path id="classpath">
-    <pathelement location="${luceeLoader}" />
+    <!-- use the loader directly <pathelement location="${luceeLoader}" /> -->
     <fileset dir="${lib}">
       <include name="**/*.jar" />
     </fileset>
