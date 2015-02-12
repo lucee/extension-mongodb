@@ -46,6 +46,12 @@
 			bundle-name="{bundle-name}" 
 			bundle-version="{bundle-version}">org.lucee.mongodb.MongoDBId</class>
 		<description>Creates a new MongoDB id (ObjectId)</description>
+		<argument>
+			<name>initArg</name>
+			<type>any</type>
+			<required>no</required>
+			<description>Date or hexString to create object ID from</description>
+		</argument>
 		<return>
 			<type>object</type>
 		</return>
