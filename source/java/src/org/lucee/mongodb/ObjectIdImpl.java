@@ -105,13 +105,14 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 	public Object get(String key) throws PageException {
 		Object value = get(key,NULL);
 		if(value!=NULL) return value;
-		throw exp.createApplicationException("key "+key+" does not exists, supported keys are [inc, machine, time, timeSecond, id]");
+		throw exp.createApplicationException("key "+key+" does not exists, supported keys are [inc, machine, date, time, timeSecond, id]");
 	}
 
 	@Override
 	public Object get(String key, Object defaultValue) {
 		if("inc".equalsIgnoreCase(key)) return toCFML(id.getInc());
 		else if("machine".equalsIgnoreCase(key)) return toCFML(id.getMachine());
+		else if("date".equalsIgnoreCase(key)) return toCFML(id.getDate());
 		else if("time".equalsIgnoreCase(key)) return toCFML(id.getTime());
 		else if("timeSecond".equalsIgnoreCase(key)) return toCFML(id.getTimeSecond());
 		else if("id".equalsIgnoreCase(key)) return toCFML(id.toString());
@@ -169,6 +170,11 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 		else if(methodName.equals("getMachine")) {
 			checkArgLength("getMachine",args,0,0);
 			return toCFML(id.getMachine());
+		}
+		// getDate
+		else if(methodName.equals("getDate")) {
+			checkArgLength("getDate",args,0,0);
+			return toCFML(id.getDate());
 		}
 		// getTime
 		else if(methodName.equals("getTime")) {
