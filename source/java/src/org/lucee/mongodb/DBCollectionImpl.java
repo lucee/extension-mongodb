@@ -18,6 +18,8 @@
  **/
 package org.lucee.mongodb;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
@@ -74,36 +76,36 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		// aggregate
 		if(methodName.equals("aggregate")) {
 			int len=checkArgLength("aggregate",args,1,-1); // no length limitation
-			DBObject firstArg;
-			DBObject[] addArgs;
-			// Array
+			List<DBObject> pipeline = new ArrayList<DBObject>();
+			// Pipeline array as single argument
 			if(len==1 && decision.isArray(args[0])) {
 				Array arr = caster.toArray(args[0]);
 				if(arr.size()==0)
 					throw exp.createApplicationException("the array passed to the function aggregate needs at least 1 element");
 
 				Iterator<Object> it = arr.valueIterator();
-				firstArg=toDBObject(it.next());
-				addArgs=new DBObject[arr.size()-1];
-				int i=0;
 				while(it.hasNext()){
-					addArgs[i++]=toDBObject(it.next());
+					pipeline.add(toDBObject(it.next()));
 				}
 			}
 			else {
-				firstArg=toDBObject(args[0]);
-				// Second argument is array
+				// First argument is first operation, second argument is array of additional operations
 				if(len==2 && decision.isArray(args[1])){
-					addArgs=toDBObjectArray(args[1]);
+					Array arr = caster.toArray(args[1]);
+					pipeline.add(toDBObject(args[0]));
+					Iterator<Object> it = arr.valueIterator();
+					while(it.hasNext()){
+						pipeline.add(toDBObject(it.next()));
+					}
 				}
+				// N arguments of pipeline operations
 				else {
-					addArgs=new DBObject[len-1];
-					for(int i=1;i<len;i++){
-						addArgs[i-1]=toDBObject(args[i]);
+					for(int i=0;i<len;i++){
+						pipeline.add(toDBObject(args[i]));
 					}
 				}
 			}
-			return toCFML(coll.aggregate(firstArg, addArgs));
+			return toCFML(coll.aggregate(pipeline));
 		}
 		// dataSize
 		if(methodName.equals("dataSize")) {

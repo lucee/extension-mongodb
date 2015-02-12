@@ -47,13 +47,13 @@ public class AggregationOutputImpl extends ObjectSupport {
 		return ao.getServerUsed();
 	}
 
-	public Iterable results() {
+	public Object results() {
 		Iterator<DBObject> it = ao.results().iterator();
 		ArrayList<Object> rtn=new ArrayList<Object>();
 		while(it.hasNext()){
 			rtn.add(new DBObjectImpl(it.next()));
 		}
-		return rtn;
+		return toCFML(rtn);
 	}
 
 	public String toString() {
