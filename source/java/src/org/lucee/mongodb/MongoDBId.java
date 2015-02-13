@@ -35,6 +35,9 @@ public class MongoDBId implements Function {
 		return call(pc, null);
 	}
 	public static Object call(PageContext pc, Object initArg) throws PageException {
+		if (initArg!=null && !(initArg instanceof Date) && !(initArg instanceof String)) {
+			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("First argument to MongoDbId is invalid type. Acceptable types are datetime and string");
+		}
 		ObjectId newID = ObjectId.get();
 		if (initArg instanceof Date){
 			newID = new ObjectId( CFMLEngineFactory.getInstance().getCastUtil().toDate( initArg, pc.getTimeZone() ) );
