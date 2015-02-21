@@ -103,10 +103,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					
 					hasOptions = true;
 					// options builder with default options set
-					AggregationOptions.Builder optbuilder = AggregationOptions.builder()
-																.allowDiskUse(false)
-																.batchSize(0)
-																.outputMode(AggregationOptions.OutputMode.CURSOR);
+					AggregationOptions.Builder optbuilder = AggregationOptions.builder();
 					
 					DBObject dboOpts = toDBObject(args[1]);
 					if (dboOpts.containsField("asCursor") && !caster.toBooleanValue(dboOpts.get("asCursor"))){
