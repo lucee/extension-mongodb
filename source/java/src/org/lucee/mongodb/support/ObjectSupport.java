@@ -30,6 +30,7 @@ import java.util.Map.Entry;
 import org.bson.types.ObjectId;
 import org.lucee.mongodb.AggregationOutputImpl;
 import org.lucee.mongodb.CommandResultImpl;
+import org.lucee.mongodb.CursorImpl;
 import org.lucee.mongodb.DBCollectionImpl;
 import org.lucee.mongodb.DBCursorImpl;
 import org.lucee.mongodb.DBImpl;
@@ -41,6 +42,7 @@ import org.lucee.mongodb.util.print;
 import com.mongodb.AggregationOutput;
 import com.mongodb.BasicDBObject;
 import com.mongodb.CommandResult;
+import com.mongodb.Cursor;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -184,6 +186,7 @@ public class ObjectSupport {
 		if(obj instanceof DBObject) return new DBObjectImpl((DBObject) obj);
 		if(obj instanceof DBCollection) return new DBCollectionImpl((DBCollection) obj);
 		if(obj instanceof DBCursor) return new DBCursorImpl((DBCursor) obj);
+		if(obj instanceof Cursor) return new CursorImpl((Cursor) obj);
 		if(obj instanceof DB) return new DBImpl((DB) obj);
 		if(obj instanceof ObjectId) return new ObjectIdImpl((ObjectId) obj);
 		if(obj instanceof Set) {
@@ -221,6 +224,7 @@ public class ObjectSupport {
 		
 		if(obj instanceof AggregationOutputImpl) return ((AggregationOutputImpl) obj).getAggregationOutput();
 		if(obj instanceof CommandResultImpl) return ((CommandResultImpl) obj).getDBObject();
+		if(obj instanceof CursorImpl) return ((CursorImpl) obj).getCursor();
 		if(obj instanceof DBObjectImpl) return ((DBObjectImpl) obj).getDBObject();
 		if(obj instanceof DBCollectionImpl) return ((DBCollectionImpl) obj).getDBCollection();
 		if(obj instanceof DBCursorImpl) return ((DBCursorImpl) obj).getDBCursor();

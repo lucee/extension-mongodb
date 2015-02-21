@@ -27,9 +27,11 @@ import org.lucee.mongodb.support.DBCollectionImplSupport;
 import org.lucee.mongodb.util.print;
 
 import com.mongodb.DBCollection;
+import com.mongodb.Cursor;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.WriteConcern;
+import com.mongodb.AggregationOptions;
 
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
@@ -75,6 +77,8 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 		// aggregate
 		if(methodName.equals("aggregate")) {
+			boolean hasOptions = false;
+			AggregationOptions options = null;
 			int len=checkArgLength("aggregate",args,1,-1); // no length limitation
 			List<DBObject> pipeline = new ArrayList<DBObject>();
 			// Pipeline array as single argument
@@ -89,8 +93,21 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				}
 			}
 			else {
+				// First argument is pipeline of operations, second argument is struct of options --> returns cursor!
+				if(len==2 && decision.isArray(args[0]) && decision.isStruct(args[1])){
+					Array arr = caster.toArray(args[0]);
+					Iterator<Object> it = arr.valueIterator();
+					while(it.hasNext()){
+						pipeline.add(toDBObject(it.next()));
+					}
+					
+					hasOptions = true;
+					options = AggregationOptions.builder().build();
+					// TODO - read and set options from args[1]
+
+				}
 				// First argument is first operation, second argument is array of additional operations
-				if(len==2 && decision.isArray(args[1])){
+				else if(len==2 && decision.isArray(args[1])){
 					Array arr = caster.toArray(args[1]);
 					pipeline.add(toDBObject(args[0]));
 					Iterator<Object> it = arr.valueIterator();
@@ -105,7 +122,14 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					}
 				}
 			}
-			return toCFML(coll.aggregate(pipeline));
+
+			if (hasOptions){
+				// returns Cursor - requires >= MongoDB 2.6
+				return toCFML(coll.aggregate(pipeline,options));
+			} else {
+				// returns AggregationOutput
+				return toCFML(coll.aggregate(pipeline));
+			}
 		}
 		// dataSize
 		if(methodName.equals("dataSize")) {
