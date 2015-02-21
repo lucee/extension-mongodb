@@ -102,18 +102,27 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					}
 					
 					hasOptions = true;
-					// options builder with default options set
-					AggregationOptions.Builder optbuilder = AggregationOptions.builder();
+					// options builder
+					AggregationOptions.Builder optbuilder = AggregationOptions.builder().outputMode(AggregationOptions.OutputMode.CURSOR);
 					
 					DBObject dboOpts = toDBObject(args[1]);
-					if (dboOpts.containsField("asCursor") && !caster.toBooleanValue(dboOpts.get("asCursor"))){
-						optbuilder.outputMode(AggregationOptions.OutputMode.INLINE);
+					if (dboOpts.containsField("allowDiskUse")){
+						if (!decision.isBoolean(dboOpts.get("allowDiskUse")))
+							throw exp.createApplicationException("allowDiskUse in options must be boolean value");
+
+						optbuilder = optbuilder.allowDiskUse(caster.toBooleanValue(dboOpts.get("allowDiskUse")));
 					}
-					if (dboOpts.containsField("allowDiskUse") && caster.toBooleanValue(dboOpts.get("allowDiskUse"))){
-						optbuilder.allowDiskUse(true);
-					}
-					if (dboOpts.containsField("cursor") && toDBObject(dboOpts.get("cursor")).containsField("batchSize")){
-						optbuilder.batchSize(caster.toIntValue(toDBObject(dboOpts.get("cursor")).get("batchSize")));
+					if (dboOpts.containsField("cursor")){
+						if (!decision.isStruct(dboOpts.get("cursor")))
+							throw exp.createApplicationException("cursor in options must be struct with optional key batchSize");
+
+						DBObject cursoropts = toDBObject(dboOpts.get("cursor"));
+						if (cursoropts.containsField("batchSize")){
+							if (!decision.isNumeric(cursoropts.get("batchSize")))
+								throw exp.createApplicationException("cursor.batchSize in options must be integer");
+							
+							optbuilder = optbuilder.batchSize(caster.toIntValue(cursoropts.get("batchSize")));
+						}
 					}
 										
 					options = optbuilder.build();
