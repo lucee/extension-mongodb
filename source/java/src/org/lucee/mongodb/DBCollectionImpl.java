@@ -102,9 +102,24 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					}
 					
 					hasOptions = true;
-					options = AggregationOptions.builder().build();
-					// TODO - read and set options from args[1]
-
+					// options builder with default options set
+					AggregationOptions.Builder optbuilder = AggregationOptions.builder()
+																.allowDiskUse(false)
+																.batchSize(0)
+																.outputMode(AggregationOptions.OutputMode.CURSOR);
+					
+					DBObject dboOpts = toDBObject(args[1]);
+					if (dboOpts.containsField("asCursor") && !caster.toBooleanValue(dboOpts.get("asCursor"))){
+						optbuilder.outputMode(AggregationOptions.OutputMode.INLINE);
+					}
+					if (dboOpts.containsField("allowDiskUse") && caster.toBooleanValue(dboOpts.get("allowDiskUse"))){
+						optbuilder.allowDiskUse(true);
+					}
+					if (dboOpts.containsField("cursor") && toDBObject(dboOpts.get("cursor")).containsField("batchSize")){
+						optbuilder.batchSize(caster.toIntValue(toDBObject(dboOpts.get("cursor")).get("batchSize")));
+					}
+										
+					options = optbuilder.build();
 				}
 				// First argument is first operation, second argument is array of additional operations
 				else if(len==2 && decision.isArray(args[1])){
