@@ -26,7 +26,7 @@
       var needle = attributes.get("needle");
       var repl = attributes.get("repl");
       text=text.trim();
-      text=text.replace(needle,repl);
+      text=text.split(needle).join(repl);
       project.setProperty(attributes.get("property"), text);
      ]]>
   </scriptdef>
