@@ -27,7 +27,7 @@
       var repl = attributes.get("repl");
       text=text.trim();
 
-      var regex = new RegExp(needle,"g");
+      var regex = new RegExp(needle,'g');
       text=text.replace(regex,repl);
       project.setProperty(attributes.get("property"), text);
      ]]>
@@ -50,7 +50,6 @@
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${temp}"/>
     <mkdir dir="${temp}/classes"/>
-    <mkdir dir="${build}"/>
     <mkdir dir="${dist}/"/>
 
 

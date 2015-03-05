@@ -79,6 +79,14 @@
 				</cfif>
 			</cfloop>
 		</cfif>
+
+
+        <cfadmin 
+        	action="updateContext"
+            type="#request.adminType#"
+            password="#session["password"&request.adminType]#"
+            source="#path#context/admin/cdriver/MongoDBCache.cfc"
+            destination="admin/cdriver/MongoDBCache.cfc">
 		
 		<cfset msg='The Extension is now successful installed. You need to restart Lucee before you can use this Extension.'>
 		<cfif arrayLen(templates)>
@@ -129,6 +137,12 @@
             		jar="#qry.name#">
 			</cfloop>
 		</cfif>
+        
+        <cfadmin 
+        	action="removeContext"
+            type="#request.adminType#"
+            password="#session["password"&request.adminType]#"
+            destination="admin/cdriver/MongoDBCache.cfc">
         
 	   <!--- remove jar
         

@@ -8,7 +8,6 @@
 
   <target name="copyClassic" depends="copyBase" description="copy source file to temp" >
 
-    <mkdir dir="${build}/classic"/>
     
    
 <echo file="${dist}/classic/doc.json">{
@@ -30,6 +29,13 @@
         <include name="**/*.*"/>
       </fileset>
     </copy>
+
+
+    <loadfile property="c1" srcFile="${build}/context/admin/cdriver/${camelname}Cache.cfc" />
+    <replace haystack="${c1}" needle="{class}" repl="${class}" property="c2"/>
+    <replace haystack="${c2}" needle="{label}" repl="${labelCache}" property="c3"/>
+    <replace haystack="${c3}" needle="{desc}" repl="${descCache}" property="c4"/>
+    <echo message="${c4}" file="${dist}/extension/context/admin/cdriver/${camelname}Cache.cfc"/>
 
 
   </target>

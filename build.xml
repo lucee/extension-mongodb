@@ -18,8 +18,7 @@
 
 
   <target name="clean" description="clean up" >
-    <!-- <delete dir="${temp}"/>
-    <delete dir="${dist}/extension2"/>
-    <delete dir="${dist}/extension"/> -->
+    <delete dir="${temp}"/>
+    <delete dir="${dist}/extension"/>
   </target>
 </project>
