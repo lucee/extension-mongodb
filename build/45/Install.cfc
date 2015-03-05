@@ -16,7 +16,9 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
  ---><cfcomponent>
-	<cfset variables.previousJars=["railo-mongodb-v01.jar","railo-mongodb-v02.jar","railo-mongodb-v03.jar","railo-mongodb-v04.jar"]>
+	<cfset variables.previousJars=[
+	"mongo-java-driver-2.12.4.jar",
+	"railo-mongodb-v01.jar","railo-mongodb-v02.jar","railo-mongodb-v03.jar","railo-mongodb-v04.jar"]>
     <cfset variables.previousTLDs=[]>
     
 

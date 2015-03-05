@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project default="clean" basedir="." name="mongodb-extension">
+	<description>
+        Build classic MongoDB Extension for 4.5
+    </description>
+  
+  <import file="build-compile.xml"/>
+
+  <target name="copyClassic" depends="copyBase" description="copy source file to temp" >
+
+    <mkdir dir="${build}/classic"/>
+    
+   
+<echo file="${dist}/classic/doc.json">{
+"builtDate":"${NOW}",
+"version":"${bundleversion}${build.number}",
+"id":"${id}",
+"name":"${codename}",
+"codename":"${codename}",
+"label":"${label}",
+"description":"${description}",
+ "type":"server",
+ "author":"${author}",
+ "category":"${category}"
+}</echo>
+
+    <!-- copy the installer files -->
+    <copy todir="${dist}/classic/">
+      <fileset dir="${build}/images">
+        <include name="**/*.*"/>
+      </fileset>
+    </copy>
+
+
+  </target>
+
+  <target name="buildClassic" depends="copyClassic"
+        description="generate the distribution" >
+
+    <!-- copy the installer files -->
+    <copy todir="${dist}/extension/">
+      <fileset dir="${build}/classic">
+        <include name="**/*.*"/>
+      </fileset>
+    </copy>
+
+
+
+    <!-- Zip everything  -->
+     <zip destfile="${dist}/classic/extension.zip">
+        <zipfileset dir="${dist}/extension"/>
+    </zip>
+		
+  </target>
+
+
+</project>
