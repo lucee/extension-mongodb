@@ -16,7 +16,9 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
  ---><cfcomponent>
-	<cfset variables.previousJars=["railo-mongodb-v01.jar","railo-mongodb-v02.jar","railo-mongodb-v03.jar","railo-mongodb-v04.jar"]>
+	<cfset variables.previousJars=[
+	"mongo-java-driver-2.12.4.jar",
+	"railo-mongodb-v01.jar","railo-mongodb-v02.jar","railo-mongodb-v03.jar","railo-mongodb-v04.jar"]>
     <cfset variables.previousTLDs=[]>
     
 
@@ -77,6 +79,14 @@
 				</cfif>
 			</cfloop>
 		</cfif>
+
+
+        <cfadmin 
+        	action="updateContext"
+            type="#request.adminType#"
+            password="#session["password"&request.adminType]#"
+            source="#path#context/admin/cdriver/MongoDBCache.cfc"
+            destination="admin/cdriver/MongoDBCache.cfc">
 		
 		<cfset msg='The Extension is now successful installed. You need to restart Lucee before you can use this Extension.'>
 		<cfif arrayLen(templates)>
@@ -127,6 +137,12 @@
             		jar="#qry.name#">
 			</cfloop>
 		</cfif>
+        
+        <cfadmin 
+        	action="removeContext"
+            type="#request.adminType#"
+            password="#session["password"&request.adminType]#"
+            destination="admin/cdriver/MongoDBCache.cfc">
         
 	   <!--- remove jar
         
