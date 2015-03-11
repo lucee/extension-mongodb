@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Timer;
 
 import org.lucee.mongodb.util.SerializerUtil;
+import org.lucee.mongodb.util.print;
 
 import com.mongodb.*;
 
@@ -23,8 +24,8 @@ import lucee.runtime.util.Cast;
 
 public class MongoDBCache implements Cache {
 
-	private String database = "";
-	private String collectionName = "";
+	private String database;
+	private String collectionName;
 	private Boolean persists = false;
 
 	//counters
@@ -59,7 +60,7 @@ public class MongoDBCache implements Cache {
 		}
 	}
 
-	public void init(Config config, String[] cacheName, Struct[] arguments) {
+	public static void init(Config config, String[] cacheName, Struct[] arguments) {
 		//Not used at the moment
 	}
 
@@ -160,7 +161,7 @@ public class MongoDBCache implements Cache {
 		BasicDBObject query = new BasicDBObject("key", key.toLowerCase());
 
 		// be sure to flush
-		flushInvalid(query);
+		flushInvalid(coll,query);
 
 		cur = coll.find(query);
 
@@ -169,7 +170,8 @@ public class MongoDBCache implements Cache {
 			MongoDBCacheDocument doc = new MongoDBCacheDocument((BasicDBObject) cur.next());
 			doc.addHit();
 			//update the statistic and persist
-			save(doc);
+			save(doc,0);
+			print.ds("get:\n- "+doc.getExpires()+"\n- "+System.currentTimeMillis()+"\n- "+key);
 			return new MongoDBCacheEntry(doc);
 		}
 		misses++;
@@ -258,36 +260,26 @@ public class MongoDBCache implements Cache {
 	@Override
 	public void put(String key, Object value, Long idleTime, Long lifeSpan) {
 		
-		Long created = System.currentTimeMillis();
-		int create = created.intValue();
-		//int idle = idleTime == null ? 0 : idleTime.intValue(); idle not supported since version 2
-		int idle = 0;
-		int life = lifeSpan == null ? 0 : lifeSpan.intValue();
+		long created = System.currentTimeMillis();
+		long idle = idleTime==null ?0:idleTime.longValue();
+		long life = lifeSpan==null ?0:lifeSpan.longValue();
 
 		BasicDBObject obj = new BasicDBObject();
 		MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
-
+		doc.setCraetedOn(created);
+		doc.setTimeIdle(idle);
+		//doc.setLifeSpan(life);
+		doc.setHits(0);
+		doc.setExpires(life==0? 0 : life+created );
+		
 		try {
-
 			doc.setValue(value);
-			doc.setCreatedOn(create);
-			doc.setTimeIdle(idle);
-			doc.setLifeSpan(life);
-			doc.setHits(0);
-
-			int expires = life + create;
-			if (life == 0) {
-				doc.setExpires(0);
-			} else {
-				doc.setExpires(expires);
-			}
-
-		} catch (IOException e) {
+		}
+		catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-
 		doc.setKey(key.toLowerCase());
-		save(doc);
+		save(doc,created);
 
 	}
 
@@ -398,15 +390,12 @@ public class MongoDBCache implements Cache {
 	}
 
 
-	protected void flushInvalid(BasicDBObject query) {
-		DBCollection coll = getCollection();
-		DBCursor cur = null;
-		Long now = System.currentTimeMillis();
-		int nowi = now.intValue();
+	protected void flushInvalid(DBCollection coll,BasicDBObject query) {
+		if(coll==null) coll=getCollection();
 		BasicDBObject q = (BasicDBObject) query.clone();
 
 		//execute the query
-		q.append("expires", new BasicDBObject("$lt", nowi).append("$gt", 0));
+		q.append("expires", new BasicDBObject("$lt", System.currentTimeMillis()).append("$gt", 0));
 		coll.remove(q);
 
 	}
@@ -416,12 +405,12 @@ public class MongoDBCache implements Cache {
 		coll.remove(obj);
 	}
 
-	private void save(MongoDBCacheDocument doc) {
+	private void save(MongoDBCacheDocument doc, long now) {
 		DBCollection coll = getCollection();
-		Long now = System.currentTimeMillis();
+		if(now<=0)now = System.currentTimeMillis();
 
-		doc.setLastAccessed(now.intValue());
-		doc.setLastUpdated(now.intValue());
+		doc.setLastAccessed(now);
+		doc.setLastUpdated(now);
 		doc.addHit();
 		/*
 		   *  very atomic updated. Just the changed values are sent to db.

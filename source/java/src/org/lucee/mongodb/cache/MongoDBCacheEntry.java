@@ -52,22 +52,22 @@ public class MongoDBCacheEntry implements CacheEntry {
 
 	@Override
 	public long idleTimeSpan() {
-		return new Long(doc.getTimeIdle());
+		return doc.getTimeIdle();
 	}
 
 	@Override
 	public Date lastHit() {
-		return new Date(new Long(doc.getLastAccessed()));
+		return new Date(doc.getLastAccessed());
 	}
 
 	@Override
 	public Date lastModified() {
-		return new Date(new Long(doc.getLastUpdated()));
+		return new Date(doc.getLastUpdated());
 	}
 
 	@Override
 	public long liveTimeSpan() {
-		return new Long(doc.getExpires());
+		return doc.getExpires();
 	}
 
 	@Override

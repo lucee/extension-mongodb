@@ -9,6 +9,7 @@ import lucee.loader.util.Util;
 
 import org.lucee.mongodb.util.Base64Encoder;
 import org.lucee.mongodb.util.SerializerUtil;
+import org.lucee.mongodb.util.print;
 
 import com.mongodb.BasicDBObject;
 
@@ -43,45 +44,48 @@ public class MongoDBCacheDocument implements Serializable {
 	public String getKey(){
 		return dbObject.getString("key");
 	}
-
-	public void setCreatedOn(int value) {
-		dbObject.put("createdOn",value);
-	}
 	
 	public String getCraetedOn(){
 		return dbObject.getString("createdOn");
 	}
+	
+	public void setCraetedOn(long created){
+		dbObject.put("createdOn",created);
+	}
+	
 
-	public void setLastAccessed(int value) {
+	
+	
+	public void setLastAccessed(long value) {
 		dbObject.put("lastAccessed",value);
 	}
 	
-	public String getLastAccessed(){
-		return dbObject.getString("lastAccessed");
+	public long getLastAccessed(){
+		return dbObject.getLong("lastAccessed");
 	}
 
-	public void setLastUpdated(int value) {
+	public void setLastUpdated(long value) {
 		dbObject.put("lastUpdated",value);
 	}
 	
-	public String getLastUpdated(){
-		return dbObject.getString("lastUpdated");
+	public long getLastUpdated(){
+		return dbObject.getLong("lastUpdated");
 	}
 	
-	public void setLifeSpan(int value) {
+	/*public void setLifeSpan(long value) {
 		dbObject.put("lifeSpan",value);
 	}
 	
-	public String getLifeSpan(){
-		return dbObject.getString("lifeSpan");
-	}
+	public long getLifeSpan(){
+		return dbObject.getLong("lifeSpan");
+	}*/
 	
-	public void setTimeIdle(int value) {
+	public void setTimeIdle(long value) {
 		dbObject.put("timeIdle",value);
 	}
 	
-	public String getTimeIdle(){
-		return dbObject.getString("timeIdle");
+	public long getTimeIdle(){
+		return dbObject.getLong("timeIdle");
 	}
 
 	public void setHits(int value) {
@@ -93,12 +97,13 @@ public class MongoDBCacheDocument implements Serializable {
 		return hits;
 	}
 
-	public void setExpires(int value) {
+	public void setExpires(long value) {
+		print.ds("set-expires:\n"+value+"\n"+((int)value));
 		dbObject.put("expires",value);
 	}
 	
-	public String getExpires(){
-		return dbObject.getString("expires"); 		
+	public long getExpires(){
+		return dbObject.getLong("expires"); 		
 	}
 
 	public BasicDBObject getDbObject(){
