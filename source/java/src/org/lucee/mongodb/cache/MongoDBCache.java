@@ -5,11 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 
-import org.lucee.mongodb.util.SerializerUtil;
-import org.lucee.mongodb.util.print;
-
-import com.mongodb.*;
-
 import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
 import lucee.commons.io.cache.CacheEntryFilter;
@@ -22,6 +17,11 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Struct;
 import lucee.runtime.util.Cast;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+
 public class MongoDBCache implements Cache {
 
 	private String database;
@@ -33,11 +33,11 @@ public class MongoDBCache implements Cache {
 	private int misses = 0;
 	private Cast caster;
 
-	public void init(String cacheName, Struct arguments) throws IOException {
+	public void init(String cacheName, Struct arguments) throws IOException, PageException {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		caster = engine.getCastUtil();
 
-		try {
+		
 			MongoConnection.init(arguments);
 
 			this.persists = caster.toBoolean(arguments.get("persist"));
@@ -55,9 +55,6 @@ public class MongoDBCache implements Cache {
 			// start the cleaner schdule that remove entries by expires time and idle time
 			startCleaner();
 
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 	}
 
 	public static void init(Config config, String[] cacheName, Struct[] arguments) {
@@ -70,10 +67,6 @@ public class MongoDBCache implements Cache {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-	}
-
-	private DB getDb(){
-		return MongoConnection.getInstance() .getDB(this.database);
 	}
 
 	private DBCollection getCollection(){
@@ -171,7 +164,6 @@ public class MongoDBCache implements Cache {
 			doc.addHit();
 			//update the statistic and persist
 			save(doc,0);
-			print.ds("get:\n- "+doc.getExpires()+"\n- "+System.currentTimeMillis()+"\n- "+key);
 			return new MongoDBCacheEntry(doc);
 		}
 		misses++;

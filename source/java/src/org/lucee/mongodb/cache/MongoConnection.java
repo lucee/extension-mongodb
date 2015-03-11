@@ -1,13 +1,17 @@
 package org.lucee.mongodb.cache;
 
-import com.mongodb.*;
+import java.util.ArrayList;
+import java.util.List;
+
 import lucee.loader.engine.CFMLEngine;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.type.Struct;
 import lucee.runtime.util.Cast;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.mongodb.Mongo;
+import com.mongodb.MongoException;
+import com.mongodb.MongoOptions;
+import com.mongodb.ServerAddress;
 
 public class MongoConnection {
 

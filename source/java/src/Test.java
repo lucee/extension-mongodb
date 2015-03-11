@@ -17,12 +17,9 @@
  * 
  **/
 import java.net.UnknownHostException;
-import java.util.Iterator;
 import java.util.Set;
 
-import org.lucee.mongodb.DBImpl;
 import org.lucee.mongodb.util.aprint;
-import org.lucee.mongodb.util.print;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;

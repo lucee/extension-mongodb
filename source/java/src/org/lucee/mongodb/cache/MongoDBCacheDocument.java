@@ -1,13 +1,8 @@
 package org.lucee.mongodb.cache;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.Serializable;
 
-import lucee.loader.util.Util;
-
-import org.lucee.mongodb.util.Base64Encoder;
 import org.lucee.mongodb.util.SerializerUtil;
 import org.lucee.mongodb.util.print;
 
