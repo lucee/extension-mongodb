@@ -4,12 +4,13 @@ import java.io.IOException;
 import java.io.Serializable;
 
 import org.lucee.mongodb.util.SerializerUtil;
-import org.lucee.mongodb.util.print;
 
 import com.mongodb.BasicDBObject;
 
 public class MongoDBCacheDocument implements Serializable {
 
+	private static final long serialVersionUID = -7033308305053665899L;
+	
 	private BasicDBObject dbObject;
 	
 	public MongoDBCacheDocument(BasicDBObject dbObject){
@@ -93,7 +94,6 @@ public class MongoDBCacheDocument implements Serializable {
 	}
 
 	public void setExpires(long value) {
-		print.ds("set-expires:\n"+value+"\n"+((int)value));
 		dbObject.put("expires",value);
 	}
 	
