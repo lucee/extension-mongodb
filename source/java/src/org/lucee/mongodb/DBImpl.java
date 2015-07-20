@@ -7,6 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.loader.util.Util;
+import lucee.runtime.PageContext;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Collection;
+import lucee.runtime.type.Objects;
+import lucee.runtime.type.Struct;
+
 import org.lucee.mongodb.support.DBImplSupport;
 
 import com.mongodb.BasicDBObject;
@@ -15,14 +23,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.WriteConcern;
-
-import lucee.loader.engine.CFMLEngineFactory;
-import lucee.loader.util.Util;
-import lucee.runtime.PageContext;
-import lucee.runtime.exp.PageException;
-import lucee.runtime.type.Collection;
-import lucee.runtime.type.Objects;
-import lucee.runtime.type.Struct;
 
 public class DBImpl extends DBImplSupport implements Collection,Objects {
 

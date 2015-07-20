@@ -18,11 +18,11 @@
  **/
 package org.lucee.mongodb;
 
-import org.bson.types.ObjectId;
-
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.Function;
+
+import org.bson.types.ObjectId;
 
 public class MongoDBId implements Function {
 
