@@ -4,17 +4,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.mongodb;
 
@@ -105,7 +105,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			checkArgLength("dataSize",args,0,0);
 			return toCFML(coll.getStats().get("size"));
 		}
-		
+
 		// distinct
 		if(methodName.equals("distinct")) {
 			int len=checkArgLength("distinct",args,1,2);
@@ -127,14 +127,14 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			coll.drop();
 			return null;
 		}
-		
+
 		// dropIndex
 		if(methodName.equals("dropIndex")) {
 			checkArgLength("dropIndex",args,1,1);
 			DBObject dbo = toDBObject(args[0], null);
 			if(dbo!=null) coll.dropIndex(dbo);
 			else coll.dropIndex(caster.toString(args[0]));
-			
+
 			return null;
 		}
 		// dropIndexes
@@ -149,25 +149,25 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				return null;
 			}
 		}
-		
-		// ensureIndex
-		if(methodName.equals("ensureIndex")) {
-			int len=checkArgLength("ensureIndex",args,1,3);
+
+		// createIndex
+		if(methodName.equals("createIndex") || methodName.equals("ensureIndex")) {
+			int len=checkArgLength("createIndex",args,1,3);
 			if(len==1){
 				DBObject dbo = toDBObject(args[0], null);
-				if(dbo!=null) coll.ensureIndex(dbo);
-				else coll.ensureIndex(caster.toString(args[0]));
+				if(dbo!=null) coll.createIndex(dbo);
+				else coll.createIndex(caster.toString(args[0]));
 				return null;
 			}
 			if(len==2){
 				DBObject p1 = toDBObject(args[0]);
 				DBObject p2 = toDBObject(args[1], null);
-				if(p2!=null) coll.ensureIndex(p1,p2);
-				else coll.ensureIndex(p1,caster.toString(args[1]));
+				if(p2!=null) coll.createIndex(p1,p2);
+				else coll.createIndex(p1,caster.toString(args[1]));
 				return null;
 			}
 			else if(len==3){
-				coll.ensureIndex(
+				coll.createIndex(
 						toDBObject(args[0]),
 						caster.toString(args[1]),
 						caster.toBooleanValue(args[2])
@@ -175,13 +175,13 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				return null;
 			}
 		}
-		
+
 		// getStats
 		if(methodName.equals("getStats") || methodName.equals("stats")) {
 			checkArgLength("getStats",args,0,0);
 			return toCFML(coll.getStats());
 		}
-		
+
 		// getIndexes
 		if(methodName.equals("getIndexes") || methodName.equals("getIndexInfo")) {
 			checkArgLength(methodName.getString(),args,0,0);
@@ -212,7 +212,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					toDBObject(args[1])
 				).skip(caster.toIntValue(args[2]));
 			}
-			
+
 			return toCFML(cursor);
 		}
 		// findOne
@@ -226,7 +226,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				DBObject arg1 = toDBObject(args[0],null);
 				if(arg1!=null)obj=coll.findOne(arg1);
 				else obj=coll.findOne(args[0]);
-				
+
 			}
 			else if(len==2){
 				DBObject arg1 = toDBObject(args[0],null);
@@ -260,11 +260,13 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				);
 			}
 			// TODO more options
-			
+
 			return toCFML(obj);
 		}
 
 		//group
+		/*
+			TODO: needs GroupCommand
 		if(methodName.equals("group")) {
 			int len=checkArgLength("group",args,1,1);
 			if(len==1){
@@ -272,8 +274,8 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					toDBObject(args[0])
 				));
 			}
-		}
-		
+		}*/
+
 		// insert
 		if(methodName.equals("insert")) {
 			checkArgLength("insert",args,1,1);
@@ -283,6 +285,8 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		}
 
 		//mapReduce
+		/*
+			TODO: needs MapReduceCommand
 		if(methodName.equals("mapReduce")) {
 			int len=checkArgLength("mapReduce",args,1,1);
 			if(len==1){
@@ -290,22 +294,28 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					toDBObject(args[0])
 				));
 			}
+		}*/
+
+		//mapReduce
+		if(methodName.equals("mapReduce")) {
+			int len=checkArgLength("mapReduce",args,1,1);
+			if(len==4){
+				return toCFML(coll.mapReduce(
+					caster.toString(args[0]),
+					caster.toString(args[1]),
+					caster.toString(args[2]),
+					toDBObject(args[3])
+				));
+			}
 		}
-		
-		// reIndex
-		if(methodName.equals("reIndex") || methodName.equals("resetIndexCache")) {
-			checkArgLength("resetIndexCache",args,0,0);
-			coll.resetIndexCache();
-			return null;
-		}
-		
+
 		// remove
 		if(methodName.equals("remove")) {
 			checkArgLength("remove",args,1,1);
 			return toCFML(coll.remove(toDBObject(args[0])));
-			
+
 		}
-		
+
 		// rename
 		if(methodName.equals("rename") || methodName.equals("renameCollection")) {
 			int len=checkArgLength(methodName.getString(),args,1,2);
@@ -321,7 +331,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					));
 			}
 		}
-		
+
 		// save
 		if(methodName.equals("save")) {
 			checkArgLength("save",args,1,1);
@@ -341,7 +351,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			checkArgLength("totalIndexSize",args,0,0);
 			return toCFML(coll.getStats().get("totalIndexSize"));
 		}
-		
+
 		// update
 		if(methodName.equals("update")) {
 			int len = checkArgLength("update",args,2,4);
@@ -368,11 +378,11 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				));
 			}
 		}
-		
-		
-		String functionNames = "aggregate,dataSize,distinct,drop,dropIndex,dropIndexes,ensureIndex,stats,getIndexes,find,findOne,findAndModify," +
-		"group,insert,mapReduce,reIndex,remove,rename,save,storageSize,totalIndexSize,update";
-		
+
+
+		String functionNames = "aggregate,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes,find,findOne,findAndModify," +
+		"group,insert,mapReduce,remove,rename,save,storageSize,totalIndexSize,update";
+
 		throw exp.createApplicationException("function "+methodName+" does not exist existing functions are ["+functionNames+"]");
 	}
 
@@ -388,7 +398,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		Iterator<DBObject> it = cursor.iterator();
 		DumpTable table = new DumpTable("struct","#339933","#8e714e","#000000");
 		table.setTitle("DBCollection");
-		
+
 		maxlevel--;
 		DBObject obj;
 		while(it.hasNext()) {

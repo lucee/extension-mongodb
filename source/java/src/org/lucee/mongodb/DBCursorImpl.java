@@ -4,17 +4,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.mongodb;
 
@@ -154,11 +154,6 @@ public class DBCursorImpl extends DBCursorImplSupport {
 			checkArgLength("getServerAddress",args,0,0);
 			return toCFML(cursor.getServerAddress());
 		}
-		// getSizes
-		if(methodName.equals("getSizes")) {
-			checkArgLength("getSizes",args,0,0);
-			return toCFML(cursor.getSizes());
-		}
 		// hasNext
 		if(methodName.equals("hasNext")) {
 			checkArgLength("hasNext",args,0,0);
@@ -184,11 +179,6 @@ public class DBCursorImpl extends DBCursorImplSupport {
 			checkArgLength("next",args,0,0);
 			return toCFML(cursor.next());
 		}
-		// numGetMores
-		if(methodName.equals("numGetMores")) {
-			checkArgLength("numGetMores",args,0,0);
-			return toCFML(cursor.numGetMores());
-		}
 		// numSeen
 		if(methodName.equals("numSeen")) {
 			checkArgLength("numSeen",args,0,0);
@@ -212,7 +202,7 @@ public class DBCursorImpl extends DBCursorImplSupport {
 		// toArray
 		if(methodName.equals("toArray")) {
 			checkArgLength("toArray",args,0,1);
-			if(args.length==0)return toCFML(cursor.toArray()); 
+			if(args.length==0)return toCFML(cursor.toArray());
 			return toCFML(cursor.toArray(caster.toIntValue(args[0])));
 		}
 		// close
@@ -256,22 +246,22 @@ public class DBCursorImpl extends DBCursorImplSupport {
 			checkArgLength("sort",args,1,1);
 			return toCFML(cursor.sort(toDBObject(args[0])));
 		}
-		
+
 		String supportedFunctions=
 			"addOption,addSpecial,batchSize,copy,count,curr,explain,getCollection,getCursorId,getDecoderFactory,getKeysWanted,getOptions," +
 			"getQuery,getReadPreference,getServerAddress,getSizes,hasNext,itcount,iterator,length,next,numGetMores,numSeen,resetOptions," +
 			"size,snapshot,toArray,close,remove,hint,limit,setOptions,skip,sort";
-			
+
 		throw exp.createExpressionException("function ["+methodName+"] is not supported, supported functions are ["+supportedFunctions+"]");
-			
-		
+
+
 	}
 
 	@Override
 	public Object callWithNamedValues(PageContext pc, Key methodName, Struct args) throws PageException {
 		throw new UnsupportedOperationException("named arguments are not supported yet!");
 	}
-	
+
 	@Override
 	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
 		//List<DBObject> arr = cursor.toArray();
@@ -291,9 +281,9 @@ public class DBCursorImpl extends DBCursorImplSupport {
 		}*/
 		return table;
 	}
-	
 
-	public DBCursor getDBCursor() { 
+
+	public DBCursor getDBCursor() {
 		return cursor;
 	}
 

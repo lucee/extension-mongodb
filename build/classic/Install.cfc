@@ -1,24 +1,24 @@
-<!--- 
+<!---
  *
  * Copyright (c) 2015, Lucee Association Switzerland. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  ---><cfcomponent>
-	
+
 	<cfset variables.previousJars=[
-	"mongo-java-driver-2.12.4.jar",
+	"mongo-java-driver-2.13.0.jar","mongo-java-driver-2.12.4.jar",
 	"railo-mongodb-v01.jar","railo-mongodb-v02.jar","railo-mongodb-v03.jar","railo-mongodb-v04.jar",
 	"mongodb-extension-1.0.0.1.jar","mongodb-extension-1.0.0.2.jar","mongodb-extension-1.0.0.3.jar","mongodb-extension-1.0.0.4.jar","mongodb-extension-1.0.0.5.jar","mongodb-extension-1.0.0.6.jar","mongodb-extension-1.0.0.7.jar","mongodb-extension-1.0.0.8.jar","mongodb-extension-1.0.0.9.jar",
 	"mongodb-extension-1.0.0.10.jar","mongodb-extension-1.0.0.11.jar","mongodb-extension-1.0.0.12.jar","mongodb-extension-1.0.0.13.jar","mongodb-extension-1.0.0.14.jar","mongodb-extension-1.0.0.15.jar","mongodb-extension-1.0.0.16.jar","mongodb-extension-1.0.0.17.jar","mongodb-extension-1.0.0.18.jar","mongodb-extension-1.0.0.19.jar",
@@ -26,7 +26,7 @@
 	"mongodb-extension-1.0.0.30.jar","mongodb-extension-1.0.0.31.jar","mongodb-extension-1.0.0.32.jar","mongodb-extension-1.0.0.33.jar","mongodb-extension-1.0.0.34.jar","mongodb-extension-1.0.0.35.jar","mongodb-extension-1.0.0.36.jar","mongodb-extension-1.0.0.37.jar","mongodb-extension-1.0.0.38.jar"
 	]>
     <cfset variables.previousTLDs=[]>
-    
+
 
 
     <cffunction name="install" returntype="string" output="no"
@@ -36,7 +36,7 @@
         <cfargument name="config" type="struct">
 
 
-		
+
 		<!--- flds/tlds --->
 		<cfloop list="fld,tld" item="local._type">
 			<cfset local.dir=path&"#_type#s/">
@@ -44,7 +44,7 @@
 				<cfdirectory action="list" directory="#dir#" filter="*.#_type#" name="local.qry">
 				<cfloop query="#qry#">
 					<cfset attr[_type]="#dir#/#qry.name#">
-					<cfadmin 
+					<cfadmin
 			           action="update#_type#"
 			           type="#request.adminType#"
 			           password="#session["password"&request.adminType]#"
@@ -52,20 +52,20 @@
 				</cfloop>
 			</cfif>
 		</cfloop>
-		
+
 		<!--- jars --->
 		<cfset local.dir=path&"jars/">
 		<cfif directoryExists(dir)>
 			<cfdirectory action="list" directory="#dir#" filter="*.jar" name="local.qry">
 			<cfloop query="#qry#">
-				<cfadmin 
+				<cfadmin
 					action="updateJar"
 					type="#request.adminType#"
 					password="#session["password"&request.adminType]#"
 					jar="#dir#/#qry.name#">
 			</cfloop>
 		</cfif>
-		
+
 		<!--- applications --->
 		<cfset templates=[]>
 		<cfset local.dir=path&"applications/">
@@ -75,11 +75,11 @@
 			<cfloop query="#qry#">
 				<cfset local.fullpath="#qry.directory#/#qry.name#">
 				<cfif fileExists(fullpath) and qry.name NEQ ".DS_Store">
-				
+
 					<cfset template=qry.name>
 					<cfset arrayAppend(templates,template)>
-					
-					<cffile action="copy" 
+
+					<cffile action="copy"
 						source="#fullpath#"
 						destination="#trg#/#template#">
 				</cfif>
@@ -87,42 +87,42 @@
 		</cfif>
 
 
-        <cfadmin 
+        <cfadmin
         	action="updateContext"
             type="#request.adminType#"
             password="#session["password"&request.adminType]#"
             source="#path#context/admin/cdriver/MongoDBCache.cfc"
             destination="admin/cdriver/MongoDBCache.cfc">
-		
+
 		<cfset msg='The Extension is now successful installed. You need to restart Lucee before you can use this Extension.'>
 		<cfif arrayLen(templates)>
 		<cfset msg&="We added some templates for testing the Extension [#arrayToList(templates)#]">
 		</cfif>
-        
+
         <cfreturn msg>
-        
+
     </cffunction>
-    	
+
      <cffunction name="update" returntype="string" output="no"
     	hint="called from Lucee to update a existing application">
 		<cfset removeOlderJars()>
 		<cfset removeOlderTLDs()>
 		<cfreturn install(argumentCollection=arguments)>
     </cffunction>
-    
-    
+
+
     <cffunction name="uninstall" returntype="string" output="no"
     	hint="called from Lucee to uninstall application">
     	<cfargument name="path" type="string">
         <cfargument name="config" type="struct">
-		
+
 		<!--- flds --->
 		<cfloop list="fld,tld" item="local._type">
 			<cfset local.dir=path&"#_type#s/">
 			<cfif directoryExists(dir)>
 				<cfdirectory action="list" directory="#dir#" filter="*.#_type#" name="local.qry">
 				<cfloop query="#qry#">
-					<cfadmin 
+					<cfadmin
 			            action="remove#_type#"
 			            type="#request.adminType#"
 			            password="#session["password"&request.adminType]#"
@@ -136,35 +136,35 @@
 		<cfif directoryExists(dir)>
 			<cfdirectory action="list" directory="#dir#" filter="*.jar" name="local.qry">
 			<cfloop query="#qry#">
-				<cfadmin 
+				<cfadmin
 					action="removeJar"
 	            	type="#request.adminType#"
             		password="#session["password"&request.adminType]#"
             		jar="#qry.name#">
 			</cfloop>
 		</cfif>
-        
-        <cfadmin 
+
+        <cfadmin
         	action="removeContext"
             type="#request.adminType#"
             password="#session["password"&request.adminType]#"
             destination="admin/cdriver/MongoDBCache.cfc">
-        
+
 	   <!--- remove jar
-        
+
 		<cfset file="#config.mixed.destination#/test-mongodb.cfm">
-       
+
         <cfif FileExists(file)>
         	<cffile action="delete" file="#file#">
         </cfif> --->
-		
+
         <cfreturn 'The Extension is now successful removed'>
     </cffunction>
-	
+
 	<cffunction name="removeOlderJars" returntype="void" output="no" access="private">
     	<cfloop from="1" to="#arrayLen(variables.previousJars)#" index="i">
             <cftry>
-				<cfadmin 
+				<cfadmin
 					action="removeJar"
 	            	type="#request.adminType#"
             		password="#session["password"&request.adminType]#"
@@ -173,11 +173,11 @@
             </cftry>
         </cfloop>
     </cffunction>
-    
+
     <cffunction name="removeOlderTLDs" returntype="void" output="no" access="private">
     	<cfloop from="1" to="#arrayLen(variables.previousTLDs)#" index="i">
             <cftry>
-                <cfadmin 
+                <cfadmin
                     action="removeTLD"
                     type="#request.adminType#"
                     password="#session["password"&request.adminType]#"
@@ -186,14 +186,14 @@
             </cftry>
         </cfloop>
     </cffunction>
-    
+
     <cffunction name="validate" returntype="string" output="no"
     	hint="called from Lucee to install application">
     	<cfargument name="error" type="struct">
         <cfargument name="path" type="string">
         <cfargument name="config" type="struct">
         <cfargument name="step" type="numeric">
-        
+
     </cffunction>
 <cfscript>
 private function mani(string path,string key){
@@ -215,7 +215,7 @@ private function mani(string path,string key){
 				return rest;
 			}
 		}
-			
+
 	}
 	return "";
 }

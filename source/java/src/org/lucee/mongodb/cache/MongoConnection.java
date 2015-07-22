@@ -47,11 +47,12 @@ public class MongoConnection {
                 e.printStackTrace();
             }
 
-            /* authenticate if required*/
+            /* authenticate if required
+             TODO: deprecated, must use MongoCredential
             String username = caster.toString(arguments.get("username"));
             char[] password = caster.toString(arguments.get("password")).toCharArray();
             String database = caster.toString(arguments.get("database"));
-            instance.getDB(database).authenticate(username, password);
+            instance.getDB(database).authenticate(username, password);*/
 
         }catch(Exception e){
             e.printStackTrace();
