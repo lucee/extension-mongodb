@@ -22,6 +22,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoException;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import com.mongodb.WriteConcern;
 
 public class DBImpl extends DBImplSupport implements Collection,Objects {
@@ -42,6 +43,11 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 			 client = createClient(host,port);
 			 clients.put(key, client);
 		}
+		return new DBImpl(client.getDB(dbName));
+	}
+
+	public static DBImpl getInstanceByURI(String dbName,String uri) throws MongoException{
+		MongoClient client = new MongoClient(new MongoClientURI(uri));
 		return new DBImpl(client.getDB(dbName));
 	}
 
@@ -308,7 +314,7 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 		String supportedFunctions=
 		"addOption,addUser,collectionExists,command,createCollection,dropDatabase,eval," +
 		"getCollection,getCollectionFromString,getCollectionNames,getMongo,getName,getOptions,getReadPreference," +
-		"getSisterDB,getStats,getWriteConcern,removeUser," +
+		"getSisterDB,getStats,getWriteConcern,removeUser" +
 		"resetOptions,setOptions";
 
 		throw exp.createExpressionException("function ["+methodName+"] is not supported, supported functions are ["+supportedFunctions+"]");
