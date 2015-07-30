@@ -21,26 +21,17 @@ package org.lucee.mongodb;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 
-import org.bson.types.ObjectId;
-import org.lucee.mongodb.support.CollObsSupport;
-import org.lucee.mongodb.support.ObjectSupport;
-import org.lucee.mongodb.support.CollObsSupport.EntryImpl;
-
-import com.mongodb.DB;
-
-import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
 import lucee.runtime.dump.DumpProperties;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.op.Castable;
 import lucee.runtime.type.Collection;
-import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
-import lucee.runtime.type.dt.DateTime;
-import lucee.runtime.util.Cast;
+
+import org.bson.types.ObjectId;
+import org.lucee.mongodb.support.CollObsSupport;
 
 public class ObjectIdImpl extends CollObsSupport implements Castable {
 	

@@ -19,15 +19,6 @@
 package org.lucee.mongodb;
 
 import java.util.Iterator;
-import java.util.Map.Entry;
-
-import org.lucee.mongodb.support.DBCollectionImplSupport;
-import org.lucee.mongodb.util.print;
-
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.WriteConcern;
 
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
@@ -35,10 +26,14 @@ import lucee.runtime.dump.DumpProperties;
 import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Array;
-import lucee.runtime.type.Collection;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
-import lucee.runtime.type.dt.DateTime;
+
+import org.lucee.mongodb.support.DBCollectionImplSupport;
+
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 
 public class DBCollectionImpl extends DBCollectionImplSupport {
 
