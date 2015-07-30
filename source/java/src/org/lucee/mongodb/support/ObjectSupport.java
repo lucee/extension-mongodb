@@ -24,8 +24,24 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
+
+import lucee.loader.engine.CFMLEngine;
+import lucee.loader.engine.CFMLEngineFactory;
+import lucee.runtime.PageContext;
+import lucee.runtime.dump.DumpData;
+import lucee.runtime.dump.DumpProperties;
+import lucee.runtime.dump.Dumpable;
+import lucee.runtime.exp.PageException;
+import lucee.runtime.type.Array;
+import lucee.runtime.type.Collection;
+import lucee.runtime.type.Collection.Key;
+import lucee.runtime.type.Struct;
+import lucee.runtime.util.Cast;
+import lucee.runtime.util.Creation;
+import lucee.runtime.util.Decision;
+import lucee.runtime.util.Excepton;
 
 import org.bson.types.ObjectId;
 import org.lucee.mongodb.AggregationOutputImpl;
@@ -37,7 +53,6 @@ import org.lucee.mongodb.DBImpl;
 import org.lucee.mongodb.DBObjectImpl;
 import org.lucee.mongodb.ObjectIdImpl;
 import org.lucee.mongodb.util.SimpleDumpData;
-import org.lucee.mongodb.util.print;
 
 import com.mongodb.AggregationOutput;
 import com.mongodb.BasicDBObject;
@@ -48,22 +63,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.WriteConcern;
-
-import lucee.loader.engine.CFMLEngine;
-import lucee.loader.engine.CFMLEngineFactory;
-import lucee.runtime.PageContext;
-import lucee.runtime.dump.DumpData;
-import lucee.runtime.dump.DumpProperties;
-import lucee.runtime.dump.Dumpable;
-import lucee.runtime.exp.PageException;
-import lucee.runtime.type.Array;
-import lucee.runtime.type.Collection;
-import lucee.runtime.type.Struct;
-import lucee.runtime.type.Collection.Key;
-import lucee.runtime.util.Cast;
-import lucee.runtime.util.Creation;
-import lucee.runtime.util.Decision;
-import lucee.runtime.util.Excepton;
 
 public class ObjectSupport {
 	private CFMLEngine engine;

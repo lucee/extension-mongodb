@@ -18,37 +18,17 @@
  **/
 package org.lucee.mongodb;
 
-import java.util.Date;
-
-import org.bson.types.ObjectId;
-
-import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.Function;
+
+import org.bson.types.ObjectId;
 
 public class MongoDBId implements Function {
 
 	private static final long serialVersionUID = 2766144594043935912L;
 	
 	public static Object call(PageContext pc) throws PageException {
-		return call(pc, null);
-	}
-	public static Object call(PageContext pc, Object initArg) throws PageException {
-		if (initArg!=null && !(initArg instanceof Date) && !(initArg instanceof String)) {
-			throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("First argument to MongoDbId is invalid type. Acceptable types are datetime and string");
-		}
-		ObjectId newID = ObjectId.get();
-		if (initArg instanceof Date){
-			newID = new ObjectId( CFMLEngineFactory.getInstance().getCastUtil().toDate( initArg, pc.getTimeZone() ) );
-		}
-		else if (initArg instanceof String){
-			String initArgString = CFMLEngineFactory.getInstance().getCastUtil().toString( initArg );
-			if (!newID.isValid(initArgString)){
-				throw CFMLEngineFactory.getInstance().getExceptionUtil().createApplicationException("String ["+initArgString+"] passed as MongoDbId argument is not a valid ObjectID string");
-			}
-			newID = new ObjectId( initArgString );	
-		}
-		return new ObjectIdImpl( newID );
+		return new ObjectIdImpl(ObjectId.get());
 	}
 }
