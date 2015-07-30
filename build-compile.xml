@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project default="clean" basedir="." name="mongodb-extension">
 	<description>
-        Build classic MongoDB Extension for 4.5
-    </description>
-    <!-- set global properties for this build -->
-  <property name="bundlename" value="mongodb.extension"/>
-  <property name="bundleversion" value="1.0.1."/>
+    Build MongoDB Extension - Compile
+  </description>
+
+
+  <buildnumber file="build.number"/>
+  <property file="build.properties"/>
   
   <property name="lib" location="source/java/libs"/>
   <property name="src" location="source/java/src"/>
@@ -14,8 +15,7 @@
   <property name="temp" location="temp"/>
   <property name="dist"  location="dist"/>
   
-  <buildnumber file="build.number"/>
-
+  
   <scriptdef name="replace" language="javascript">
      <attribute name="haystack" />
      <attribute name="needle" />
@@ -26,13 +26,15 @@
       var needle = attributes.get("needle");
       var repl = attributes.get("repl");
       text=text.trim();
-      text=text.replace(needle,repl);
+
+      var regex = new RegExp(needle,'g');
+      text=text.replace(regex,repl);
       project.setProperty(attributes.get("property"), text);
      ]]>
   </scriptdef>
 
   <path id="classpath">
-    <!-- use the loader directly <pathelement location="${luceeLoader}" /> -->
+    <!-- use the loader project directly <pathelement location="${luceeLoader}" /> -->
     <fileset dir="${lib}">
       <include name="**/*.jar" />
     </fileset>
@@ -47,79 +49,37 @@
 
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${temp}"/>
-    <mkdir dir="${build}"/>
+    <mkdir dir="${temp}/classes"/>
     <mkdir dir="${dist}/"/>
-  </target>
-
-
-  <target name="copy" depends="init" description="copy source file to temp" >
-    <!-- copy the source
-    <copy todir="${temp}">
-      <fileset dir="${src}">
-        <include name="**/*.java"/>
-      </fileset>
-    </copy> -->
 
 
     <tstamp>
      <format property="NOW" pattern="yyyy-MM-dd HH:mm:ss" />
     </tstamp>
-
-<echo file="${dist}/45/doc.json">
-{
-"builtDate":"${NOW}",
-"version":"${bundleversion}${build.number}",
-"id":"E6634E1A-4CC5-4839-A83C67549ECA8D5B",
-"name":"mongodb",
-"codename":"mongodb",
-"label":"MongoDB Integration",
-"description":"MongoDB (from humongous) is a cross-platform document-oriented database. 
- Classified as a NoSQL database, MongoDB eschews the traditional table-based relational database structure in favor of JSON-like 
- documents with dynamic schemas (MongoDB calls the format BSON), making the integration of data in certain types of 
- applications easier and faster.",
- "type":"server",
- "author":"Michael Offner",
- "category":"Datasource"
-}
-</echo>
-
-    <!-- copy the installer files -->
-    <copy todir="${dist}/45/">
-      <fileset dir="${build}/images">
-        <include name="**/*.*"/>
-      </fileset>
-    </copy>
-
-
   </target>
-  
 
-
-  <target name="compile" depends="copy"
+  <target name="compile" depends="init"
         description="compile the source " >
     <!-- Compile Java source -->
-    <javac srcdir="${src}" target="1.6" destdir="${temp}" debug="true" debuglevel="lines,vars,source">
+    <javac srcdir="${src}" target="1.6" destdir="${temp}/classes" debug="true" debuglevel="lines,vars,source">
       <classpath refid="classpath" />
     </javac>
-  </target>
 
-  <target name="dist" depends="compile"
-        description="generate the distribution" >
-    
- 
     <!-- Put everything in ${build} into .jar file -->
     <jar 
-    	jarfile="${dist}/extension/jars/mongodb-extension-${bundleversion}${build.number}.jar" basedir="${temp}"  manifest="${src}/META-INF/MANIFEST.MF">
+      jarfile="${dist}/extension/jars/mongodb-extension-${bundleversion}${build.number}.jar" basedir="${temp}/classes"  manifest="${src}/META-INF/MANIFEST.MF">
       <manifest>
         <attribute name="Bundle-Version" value="${bundleversion}${build.number}"/>
         <attribute name="Built-Date" value="${NOW}"/>
         <attribute name="Bundle-SymbolicName" value="${bundlename}"/>
-
       </manifest>
     </jar>
+  </target>
 
+  <target name="copyBase" depends="compile"
+        description="compile the source " >
 
-    <!-- copy the tlds necessary -->
+        <!-- copy the fld necessary -->
     <loadfile property="content1" srcFile="${fld}/mongodb.fld" />
     <replace haystack="${content1}" needle="{bundle-name}" repl="${bundlename}" property="content2"/>
     <replace haystack="${content2}" needle="{bundle-version}" repl="${bundleversion}${build.number}" property="content3"/>
@@ -137,29 +97,15 @@
       <fileset dir="${lib}">
         <include name="**/*.jar"/>
         <exclude name="**/javax.servlet.jar"/>
+        <exclude name="**/lucee.jar"/>
       </fileset>
     </copy>
 
-    <!-- copy the installer files -->
-    <copy todir="${dist}/extension/">
-      <fileset dir="${build}/45">
-        <include name="**/*.*"/>
-      </fileset>
-    </copy>
-
-
-
-    <!-- Zip everything  -->
-     <zip destfile="${dist}/45/extension.zip">
-        <zipfileset dir="${dist}/extension"/>
-    </zip>
-		
   </target>
 
-	<target name="clean"  depends="dist" description="clean up" >
-		<!-- Delete the ${build} and ${dist} directory trees -->
-		<delete dir="${temp}"/>
-    <delete dir="${dist}/extension"/>
-	</target>
+
+
+
+
 
 </project>

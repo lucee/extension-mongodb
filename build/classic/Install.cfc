@@ -16,7 +16,15 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
  ---><cfcomponent>
-	<cfset variables.previousJars=["railo-mongodb-v01.jar","railo-mongodb-v02.jar","railo-mongodb-v03.jar","railo-mongodb-v04.jar"]>
+	
+	<cfset variables.previousJars=[
+	"mongo-java-driver-2.12.4.jar",
+	"railo-mongodb-v01.jar","railo-mongodb-v02.jar","railo-mongodb-v03.jar","railo-mongodb-v04.jar",
+	"mongodb-extension-1.0.0.1.jar","mongodb-extension-1.0.0.2.jar","mongodb-extension-1.0.0.3.jar","mongodb-extension-1.0.0.4.jar","mongodb-extension-1.0.0.5.jar","mongodb-extension-1.0.0.6.jar","mongodb-extension-1.0.0.7.jar","mongodb-extension-1.0.0.8.jar","mongodb-extension-1.0.0.9.jar",
+	"mongodb-extension-1.0.0.10.jar","mongodb-extension-1.0.0.11.jar","mongodb-extension-1.0.0.12.jar","mongodb-extension-1.0.0.13.jar","mongodb-extension-1.0.0.14.jar","mongodb-extension-1.0.0.15.jar","mongodb-extension-1.0.0.16.jar","mongodb-extension-1.0.0.17.jar","mongodb-extension-1.0.0.18.jar","mongodb-extension-1.0.0.19.jar",
+	"mongodb-extension-1.0.0.20.jar","mongodb-extension-1.0.0.21.jar","mongodb-extension-1.0.0.22.jar","mongodb-extension-1.0.0.23.jar","mongodb-extension-1.0.0.24.jar","mongodb-extension-1.0.0.25.jar","mongodb-extension-1.0.0.26.jar","mongodb-extension-1.0.0.27.jar","mongodb-extension-1.0.0.28.jar","mongodb-extension-1.0.0.29.jar",
+	"mongodb-extension-1.0.0.30.jar","mongodb-extension-1.0.0.31.jar","mongodb-extension-1.0.0.32.jar","mongodb-extension-1.0.0.33.jar","mongodb-extension-1.0.0.34.jar","mongodb-extension-1.0.0.35.jar","mongodb-extension-1.0.0.36.jar","mongodb-extension-1.0.0.37.jar","mongodb-extension-1.0.0.38.jar"
+	]>
     <cfset variables.previousTLDs=[]>
     
 
@@ -77,6 +85,14 @@
 				</cfif>
 			</cfloop>
 		</cfif>
+
+
+        <cfadmin 
+        	action="updateContext"
+            type="#request.adminType#"
+            password="#session["password"&request.adminType]#"
+            source="#path#context/admin/cdriver/MongoDBCache.cfc"
+            destination="admin/cdriver/MongoDBCache.cfc">
 		
 		<cfset msg='The Extension is now successful installed. You need to restart Lucee before you can use this Extension.'>
 		<cfif arrayLen(templates)>
@@ -127,6 +143,12 @@
             		jar="#qry.name#">
 			</cfloop>
 		</cfif>
+        
+        <cfadmin 
+        	action="removeContext"
+            type="#request.adminType#"
+            password="#session["password"&request.adminType]#"
+            destination="admin/cdriver/MongoDBCache.cfc">
         
 	   <!--- remove jar
         
