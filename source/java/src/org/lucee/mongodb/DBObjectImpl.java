@@ -21,16 +21,14 @@ package org.lucee.mongodb;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import org.lucee.mongodb.support.DBObjectImplSupport;
 
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection;
 import lucee.runtime.type.Struct;
-import lucee.runtime.type.Collection.Key;
+
+import org.lucee.mongodb.support.DBObjectImplSupport;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;

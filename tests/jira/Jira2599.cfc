@@ -1,6 +1,6 @@
-/**
+<!--- 
  *
- * Copyright (c) 2015, Lucee Association Switzerland. All rights reserved.
+ * Copyright (c) 2014, the Railo Company LLC. All rights reserved.
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -15,10 +15,32 @@
  * You should have received a copy of the GNU Lesser General Public 
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  * 
- **/
-package org.lucee.mongodb.util;
-
-public class Util {
+ ---><cfscript>
+component extends="org.lucee.cfml.test.LuceeTestCase"	{
 	
+	//public function beforeTests(){}
+	
+	//public function afterTests(){}
+	
+	//public function setUp(){}
 
-}
+	public void function testIdConversion(){
+		
+			content = {'name':'Susi'};
+			mongo = MongoDBConnect("test");
+			mongo['test'].insert(content);
+			
+			
+			//db.test2.insert({susi:"Sorglos"});
+
+			
+			//Get by Name
+			var id = mongo['test'].findOne({'name':'Susi'}, {'_id':1});
+			
+			//Get by Id : fails
+			var byid = mongo['test'].findOne({'_id':id});
+		
+		
+	}
+} 
+</cfscript>

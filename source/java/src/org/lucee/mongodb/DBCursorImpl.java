@@ -19,8 +19,6 @@
 package org.lucee.mongodb;
 
 
-import org.lucee.mongodb.support.DBCursorImplSupport;
-
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
 import lucee.runtime.dump.DumpProperties;
@@ -28,6 +26,8 @@ import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
+
+import org.lucee.mongodb.support.DBCursorImplSupport;
 
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
