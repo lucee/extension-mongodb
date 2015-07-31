@@ -35,14 +35,14 @@ public class AggregationOutputImpl extends ObjectSupport {
 		this.ao=ao;
 	}
 
-	public Object results() {
-		Iterator<DBObject> it = ao.results().iterator();
-		ArrayList<Object> rtn=new ArrayList<Object>();
-		while(it.hasNext()){
-			rtn.add(new DBObjectImpl(it.next()));
-		}
-		return toCFML(rtn);
-	}
+    public Object results() {
+        Iterator<DBObject> it = ao.results().iterator();
+        ArrayList<Object> rtn=new ArrayList<Object>();
+        while(it.hasNext()){
+            rtn.add(new DBObjectImpl(it.next()));
+        }
+        return toCFML(rtn);
+    }
 
 	public String toString() {
 		return ao.toString();
