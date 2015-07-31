@@ -94,7 +94,7 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 	public Object get(String key) throws PageException {
 		Object value = get(key,NULL);
 		if(value!=NULL) return value;
-		throw exp.createApplicationException("key "+key+" does not exists, supported keys are [inc, machine, date, time, timeSecond, id]");
+		throw exp.createApplicationException("key "+key+" does not exists, supported keys are [date, timeStamp, id]");
 	}
 
 	@Override
