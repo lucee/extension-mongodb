@@ -211,10 +211,10 @@ public class ObjectSupport {
 			}
 			return rtn;
 		}
-		if (Date.class.isAssignableFrom(obj.getClass())) {
-			// Date jDate = (Date)obj;
-			// TODO: this doesn't work
-			return (Date)obj;
+		if(obj instanceof Date) {
+			return new Date(((Date) obj).getTime());
+			// Java 8 only:
+			// return Date.from(((Date) obj).toInstant());
 		}
 		if(obj instanceof Map || decision.isStruct(obj)) {
 			return toMongo(caster.toMap(obj,null));
