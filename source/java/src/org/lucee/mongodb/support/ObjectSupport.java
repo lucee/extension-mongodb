@@ -19,6 +19,7 @@
 package org.lucee.mongodb.support;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -210,6 +211,11 @@ public class ObjectSupport {
 			}
 			return rtn;
 		}
+		if (Date.class.isAssignableFrom(obj.getClass())) {
+			// Date jDate = (Date)obj;
+			// TODO: this doesn't work
+			return (Date)obj;
+		}
 		if(obj instanceof Map || decision.isStruct(obj)) {
 			return toMongo(caster.toMap(obj,null));
 		}
@@ -263,7 +269,8 @@ public class ObjectSupport {
 			return ((Dumpable)obj).toDumpData(pageContext, maxlevel, dp);
 		if(CFMLEngineFactory.getInstance().getDecisionUtil().isSimpleValue(obj))
 			return new SimpleDumpData(caster.toString(obj,null));
-		return new SimpleDumpData(obj.toString());
+		return new SimpleDumpData("");
+		// return new SimpleDumpData(obj.toString());
 	}
 
 	public static Set<Entry<String, Object>> entrySet(Collection coll) {
