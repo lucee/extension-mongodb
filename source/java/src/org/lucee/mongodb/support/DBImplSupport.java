@@ -4,17 +4,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.mongodb.support;
 
@@ -24,16 +24,16 @@ import lucee.runtime.dump.DumpProperties;
 import lucee.runtime.dump.DumpTable;
 
 public abstract class DBImplSupport extends CollObsSupport {
-	
+
 	private static final long serialVersionUID = -6887503857516957781L;
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
 	/*public static class ValueIterator implements Iterator<Object> {
-		
+
 		private final Iterator<String> it;
 		private final DB db;
 
@@ -68,7 +68,7 @@ public abstract class DBImplSupport extends CollObsSupport {
 		}
 	}
 	public static class EntryIterator implements Iterator<Entry<Key, Object>> {
-		
+
 		private final Iterator<String> it;
 		private final DB db;
 		private final Collection coll;
@@ -76,7 +76,7 @@ public abstract class DBImplSupport extends CollObsSupport {
 
 		/**
 		 * constructor for the class
-		 * @param caster2 
+		 * @param caster2
 		 * @param arr Base Array
 		 * /
 		public EntryIterator(Cast caster, DB db,Collection coll,Iterator<String> it) {
@@ -108,14 +108,14 @@ public abstract class DBImplSupport extends CollObsSupport {
 			return new EntryImpl(coll, caster.toKey(k,null), new DBCollectionImpl(db.getCollection(k))) ;
 		}
 	}*/
-	
+
 
 	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
 		DumpTable table = _toDumpTable("DB", pageContext, maxlevel, dp);
-		table.setComment("http://docs.mongodb.org/manual/reference/javascript/");
+		table.setComment("http://docs.mongodb.org/manual/reference/command/");
 		return table;
-		
-		
-		
+
+
+
 	}
 }

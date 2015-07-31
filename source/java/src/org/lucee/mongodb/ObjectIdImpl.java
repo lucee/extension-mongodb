@@ -172,6 +172,31 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 			checkArgLength("toString",args,0,0);
 			return toCFML(id.toString());
 		}
+		// getGeneratedMachineIdentifier
+		else if(methodName.equals("getGeneratedMachineIdentifier")) {
+			checkArgLength("getGeneratedMachineIdentifier",args,0,0);
+			return toCFML(id.getGeneratedMachineIdentifier());
+		}
+		// getGeneratedProcessIdentifier
+		else if(methodName.equals("getGeneratedProcessIdentifier")) {
+			checkArgLength("getGeneratedProcessIdentifier",args,0,0);
+			return toCFML(id.getGeneratedProcessIdentifier());
+		}
+		// getMachineIdentifier
+		else if(methodName.equals("getMachineIdentifier")) {
+			checkArgLength("getMachineIdentifier",args,0,0);
+			return toCFML(id.getMachineIdentifier());
+		}
+		// getProcessIdentifier
+		else if(methodName.equals("getProcessIdentifier")) {
+			checkArgLength("getProcessIdentifier",args,0,0);
+			return toCFML(id.getProcessIdentifier());
+		}
+		// toHexString
+		else if(methodName.equals("toHexString")) {
+			checkArgLength("toHexString",args,0,0);
+			return toCFML(id.toHexString());
+		}
 
 		throw new UnsupportedOperationException("function "+methodName+" not supported");
 	}
