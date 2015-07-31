@@ -18,7 +18,20 @@
  **/
 package org.lucee.mongodb;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Iterator;
+import java.util.Map.Entry;
+
+import org.lucee.mongodb.support.DBCollectionImplSupport;
+import org.lucee.mongodb.util.print;
+
+import com.mongodb.DBCollection;
+import com.mongodb.Cursor;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.WriteConcern;
+import com.mongodb.AggregationOptions;
 
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
@@ -26,14 +39,10 @@ import lucee.runtime.dump.DumpProperties;
 import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Array;
+import lucee.runtime.type.Collection;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
-
-import org.lucee.mongodb.support.DBCollectionImplSupport;
-
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
+import lucee.runtime.type.dt.DateTime;
 
 public class DBCollectionImpl extends DBCollectionImplSupport {
 
@@ -68,37 +77,80 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 		// aggregate
 		if(methodName.equals("aggregate")) {
+			boolean hasOptions = false;
+			AggregationOptions options = null;
 			int len=checkArgLength("aggregate",args,1,-1); // no length limitation
-			DBObject firstArg;
-			DBObject[] addArgs;
-			// Array
+			List<DBObject> pipeline = new ArrayList<DBObject>();
+			// Pipeline array as single argument
 			if(len==1 && decision.isArray(args[0])) {
 				Array arr = caster.toArray(args[0]);
 				if(arr.size()==0)
 					throw exp.createApplicationException("the array passed to the function aggregate needs at least 1 element");
 
 				Iterator<Object> it = arr.valueIterator();
-				firstArg=toDBObject(it.next());
-				addArgs=new DBObject[arr.size()-1];
-				int i=0;
 				while(it.hasNext()){
-					addArgs[i++]=toDBObject(it.next());
+					pipeline.add(toDBObject(it.next()));
 				}
 			}
 			else {
-				firstArg=toDBObject(args[0]);
-				// Second argument is array
-				if(len==2 && decision.isArray(args[1])){
-					addArgs=toDBObjectArray(args[1]);
+				// First argument is pipeline of operations, second argument is struct of options --> returns cursor!
+				if(len==2 && decision.isArray(args[0]) && decision.isStruct(args[1])){
+					Array arr = caster.toArray(args[0]);
+					Iterator<Object> it = arr.valueIterator();
+					while(it.hasNext()){
+						pipeline.add(toDBObject(it.next()));
+					}
+					
+					hasOptions = true;
+					// options builder
+					AggregationOptions.Builder optbuilder = AggregationOptions.builder().outputMode(AggregationOptions.OutputMode.CURSOR);
+					
+					DBObject dboOpts = toDBObject(args[1]);
+					if (dboOpts.containsField("allowDiskUse")){
+						if (!decision.isBoolean(dboOpts.get("allowDiskUse")))
+							throw exp.createApplicationException("allowDiskUse in options must be boolean value");
+
+						optbuilder = optbuilder.allowDiskUse(caster.toBooleanValue(dboOpts.get("allowDiskUse")));
+					}
+					if (dboOpts.containsField("cursor")){
+						if (!decision.isStruct(dboOpts.get("cursor")))
+							throw exp.createApplicationException("cursor in options must be struct with optional key batchSize");
+
+						DBObject cursoropts = toDBObject(dboOpts.get("cursor"));
+						if (cursoropts.containsField("batchSize")){
+							if (!decision.isNumeric(cursoropts.get("batchSize")))
+								throw exp.createApplicationException("cursor.batchSize in options must be integer");
+							
+							optbuilder = optbuilder.batchSize(caster.toIntValue(cursoropts.get("batchSize")));
+						}
+					}
+										
+					options = optbuilder.build();
 				}
+				// First argument is first operation, second argument is array of additional operations
+				else if(len==2 && decision.isArray(args[1])){
+					Array arr = caster.toArray(args[1]);
+					pipeline.add(toDBObject(args[0]));
+					Iterator<Object> it = arr.valueIterator();
+					while(it.hasNext()){
+						pipeline.add(toDBObject(it.next()));
+					}
+				}
+				// N arguments of pipeline operations
 				else {
-					addArgs=new DBObject[len-1];
-					for(int i=1;i<len;i++){
-						addArgs[i-1]=toDBObject(args[i]);
+					for(int i=0;i<len;i++){
+						pipeline.add(toDBObject(args[i]));
 					}
 				}
 			}
-			return toCFML(coll.aggregate(firstArg, addArgs));
+
+			if (hasOptions){
+				// returns Cursor - requires >= MongoDB 2.6
+				return toCFML(coll.aggregate(pipeline,options));
+			} else {
+				// returns AggregationOutput
+				return toCFML(coll.aggregate(pipeline));
+			}
 		}
 		// dataSize
 		if(methodName.equals("dataSize")) {
