@@ -43,10 +43,8 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 		this.id=id;
 		if(keys==null){
 			keys=new ArrayList<Collection.Key>();
-			keys.add(creator.createKey("inc"));
-			keys.add(creator.createKey("machine"));
-			keys.add(creator.createKey("time"));
-			keys.add(creator.createKey("timeSecond"));
+			keys.add(creator.createKey("date"));
+			keys.add(creator.createKey("timeStamp"));
 			keys.add(creator.createKey("id"));
 		}
 	}
