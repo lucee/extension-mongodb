@@ -12,7 +12,10 @@ Overview
 -----------------
 This extension provides Lucee Server with functions for managing connections to MongoDB (using the underlying Java MongoDB driver) and takes care of converting data types from Lucee to Java and vice versa. It is designed to provide MongoDB shell-like dialect directly in Lucee code. For example:
 
-<pre><code>db  = MongoDBConnect("test","localhost", 27017);   
+<pre><code>db  = MongoDBConnect("test","localhost", 27017);
+or
+db  = MongoDBConnect("mongodb://localhost:27017/test");
+
 
 // use struct notation for collections
 cur = db["someCollection"].find();
@@ -34,13 +37,15 @@ db.otherCollection.save(
 )
 </code></pre>
 
+MongoDB documentation: https://docs.mongodb.org/manual/reference/command/
+
 Contributing
 -----------------
 Two build scripts are included, build.xml for Lucee 5+ and build45.xml for Lucee 4.5. Also included is a local Extension Provider. To use this, unzip the contents of misc/ExtensionProvider.zip to your web root so you have:
 
 <pre><code>/webroot/ExtensionProvider.cfc
 /webroot/ext/
-</code></pre> 
+</code></pre>
 
 Add your local extension provider in the Lucee server admin. After building this project copy the files in /dist to /webroot/ext/mongodb/. Then use your local extension provider to update the extension.
 
