@@ -237,21 +237,7 @@ public class ObjectSupport {
 	}
 
 	public Map toMongo(Map map) {
-			// single record in Map
-			if(map.size()==1) {
-				Entry e=(Entry) map.entrySet().iterator().next();
-				return new BasicDBObject(caster.toString(e.getKey(),null), toMongo(e.getValue()));
-			}
-
-			// multiple records
-			Map rtn=new HashMap();
-			Iterator it = map.entrySet().iterator();
-			Entry e;
-			while(it.hasNext()){
-				e = (Map.Entry)it.next();
-				rtn.put(toMongo(e.getKey()), toMongo(e.getValue()));
-			}
-			return rtn;
+		return new BasicDBObject(map);
 	}
 
 	public Object[] toNativeMongoArray(Object object) {
