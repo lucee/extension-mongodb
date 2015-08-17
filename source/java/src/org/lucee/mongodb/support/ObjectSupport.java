@@ -236,7 +236,7 @@ public class ObjectSupport {
 		return obj;
 	}
 
-	public Map toMongo(Map map) {
+	public BasicDBObject toMongo(Map map) {
 		// single record in Map
 		if(map.size()==1) {
 			Entry e=(Entry) map.entrySet().iterator().next();
