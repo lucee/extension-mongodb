@@ -92,6 +92,13 @@
       </fileset>
     </copy>
 
+    <!-- copy the functions necessary -->
+    <copy todir="${dist}/extension/functions">
+      <fileset dir="${build}/functions">
+        <include name="**/*.*"/>
+      </fileset>
+    </copy>
+
     <!-- copy the jars necessary -->
     <copy todir="${dist}/extension/jars">
       <fileset dir="${lib}">
