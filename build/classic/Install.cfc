@@ -86,6 +86,21 @@
 			</cfloop>
 		</cfif>
 
+		<!--- functions --->
+		<cfset local.dir=path&"functions/">
+		<cfset local.trg=expandPath('{lucee-server-directory}/library/function')>
+		<cfif directoryExists(dir)>
+			<cfdirectory action="list" directory="#dir#" name="local.qry" recurse="yes">
+			<cfloop query="#qry#">
+				<cfset local.fullpath="#qry.directory#/#qry.name#">
+				<cfif fileExists(fullpath) and qry.name NEQ ".DS_Store">
+					<cfset template=qry.name>
+					<cffile action="copy"
+						source="#fullpath#"
+						destination="#trg#/#template#">
+				</cfif>
+			</cfloop>
+		</cfif>
 
         <cfadmin
         	action="updateContext"

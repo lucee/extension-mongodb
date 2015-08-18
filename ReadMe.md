@@ -39,6 +39,17 @@ db.otherCollection.save(
 
 MongoDB documentation: https://docs.mongodb.org/manual/reference/command/
 
+Two built-in-functions (BIFs) are also installed with the extension: MongoDBID() and MongoDBObject(). 
+
+<strong>MongoDBID()</strong> creates MongoDB Object ID values and takes no argument, or a single argument of either a <strong>string</strong> (must be valid ObjectID string) or a <strong>date</strong> and returns an ObjectID. See: http://docs.mongodb.org/manual/core/object-id
+
+MongoDBObject() creates an ordered BasicDBObject, which is essentially a struct with keys that iterate in predictable order. This is useful in MongoDB for passing in structs where key order needs to be maintained (such as in sort() or ensureIndex() operations). MongoDBObject() takes any number of arguments and returns a BasicDBObject. Example:
+
+<pre><code>
+db.getCollection("test").find({}).sort(MongoDBObject("sortFirst":1, "sortSecond":-1));
+</code></pre>
+
+
 Contributing
 -----------------
 Two build scripts are included, build.xml for Lucee 5+ and build45.xml for Lucee 4.5. Also included is a local Extension Provider. To use this, unzip the contents of misc/ExtensionProvider.zip to your web root so you have:
