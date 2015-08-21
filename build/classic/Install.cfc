@@ -146,6 +146,21 @@
 			</cfif>
 		</cfloop>
 
+		<!--- functions --->
+		<cfset local.dir=path&"functions/">
+		<cfset local.trg=expandPath('{lucee-server-directory}/library/function')>
+		<cfif directoryExists(dir)>
+			<cfdirectory action="list" directory="#dir#" name="local.qry" recurse="yes">
+			<cfloop query="#qry#">
+				<cfset local.fullpath="#local.trg#/#qry.name#">
+				<cfif fileExists(fullpath)>
+					<cfset template=qry.name>
+					<cffile action="delete"
+						file="#fullpath#">
+				</cfif>
+			</cfloop>
+		</cfif>
+
 		<!--- jars --->
 		<cfset local.dir=path&"jars/">
 		<cfif directoryExists(dir)>
