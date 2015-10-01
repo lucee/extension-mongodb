@@ -350,7 +350,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 		//mapReduce
 		if(methodName.equals("mapReduce")) {
-			int len=checkArgLength("mapReduce",args,1,1);
+			int len=checkArgLength("mapReduce",args,4,4);
 			if(len==4){
 				return toCFML(coll.mapReduce(
 					caster.toString(args[0]),
