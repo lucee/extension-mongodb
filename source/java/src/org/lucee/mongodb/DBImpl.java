@@ -310,12 +310,21 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 			db.setOptions(caster.toIntValue(args[0]));
 			return null;
 		}
+		// db.setWriteConcern()
+		else if(methodName.equals("setWriteConcern")) {
+			checkArgLength("setWriteConcern",args,1,1);
+			WriteConcern wc = WriteConcern.valueOf(caster.toString(args[0]));
+			if (wc != null) {
+				db.setWriteConcern(wc);
+			}
+			return null;
+		}
 
 		String supportedFunctions=
 		"addOption,addUser,collectionExists,command,createCollection,dropDatabase,eval," +
 		"getCollection,getCollectionFromString,getCollectionNames,getMongo,getName,getOptions,getReadPreference," +
 		"getSisterDB,getStats,getWriteConcern,removeUser" +
-		"resetOptions,setOptions";
+		"resetOptions,setOptions,setWriteConcern";
 
 		throw exp.createExpressionException("function ["+methodName+"] is not supported, supported functions are ["+supportedFunctions+"]");
 
@@ -324,7 +333,7 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 		// getReplicationInfo,getSiblingDB,killOp(),db.listCommands(),db.loadServerScripts(),db.logout(),db.printCollectionStats()
 		// printReplicationInfo,printShardingStatus,printSlaveReplicationInfo,repairDatabase,runCommand,serverBuildInfo
 
-		// TODO setReadPreference,setWriteConcern
+		// TODO setReadPreference
 	}
 
 	@Override

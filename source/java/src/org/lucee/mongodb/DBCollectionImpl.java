@@ -100,11 +100,11 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					while(it.hasNext()){
 						pipeline.add(toDBObject(it.next()));
 					}
-					
+
 					hasOptions = true;
 					// options builder
 					AggregationOptions.Builder optbuilder = AggregationOptions.builder().outputMode(AggregationOptions.OutputMode.CURSOR);
-					
+
 					DBObject dboOpts = toDBObject(args[1]);
 					if (dboOpts.containsField("allowDiskUse")){
 						if (!decision.isBoolean(dboOpts.get("allowDiskUse")))
@@ -120,11 +120,11 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 						if (cursoropts.containsField("batchSize")){
 							if (!decision.isNumeric(cursoropts.get("batchSize")))
 								throw exp.createApplicationException("cursor.batchSize in options must be integer");
-							
+
 							optbuilder = optbuilder.batchSize(caster.toIntValue(cursoropts.get("batchSize")));
 						}
 					}
-										
+
 					options = optbuilder.build();
 				}
 				// First argument is first operation, second argument is array of additional operations
@@ -240,6 +240,12 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			return toCFML(coll.getIndexInfo());
 		}
 
+		// getWriteConcern
+		if(methodName.equals("getWriteConcern")) {
+			checkArgLength("getWriteConcern",args,0,0);
+			return toCFML(coll.getWriteConcern());
+		}
+
 		// find
 		if(methodName.equals("find")) {
 			int len=checkArgLength("find",args,0,3);
@@ -292,6 +298,12 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					toDBObject(args[2])
 				);
 			}
+			return toCFML(obj);
+		}
+		// findAndRemove
+		if(methodName.equals("findAndRemove")) {
+			checkArgLength("findAndRemove",args,1,1);
+			DBObject obj = coll.findAndRemove(toDBObject(args[0]));
 			return toCFML(obj);
 		}
 		// findAndModify
@@ -392,6 +404,16 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				);
 		}
 
+		// setWriteConcern
+		if(methodName.equals("setWriteConcern")) {
+			checkArgLength("setWriteConcern",args,1,1);
+			WriteConcern wc = WriteConcern.valueOf(caster.toString(args[0]));
+			if (wc != null) {
+				coll.setWriteConcern(wc);
+			}
+			return null;
+		}
+
 		// storageSize
 		if(methodName.equals("storageSize")) {
 			checkArgLength("storageSize",args,0,0);
@@ -432,8 +454,8 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		}
 
 
-		String functionNames = "aggregate,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes,find,findOne,findAndModify," +
-		"group,insert,mapReduce,remove,rename,save,storageSize,totalIndexSize,update";
+		String functionNames = "aggregate,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes,getWriteConcern,find,findOne,findAndRemove,findAndModify," +
+		"group,insert,mapReduce,remove,rename,save,setWriteConcern,storageSize,totalIndexSize,update";
 
 		throw exp.createApplicationException("function "+methodName+" does not exist existing functions are ["+functionNames+"]");
 	}
