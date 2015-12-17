@@ -152,6 +152,16 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				return toCFML(coll.aggregate(pipeline));
 			}
 		}
+		// count
+		if(methodName.equals("count")) {
+			int len=checkArgLength("count",args,0,1);
+			if(len==0) {
+				return toCFML(coll.count());
+			}
+			else if(len==1){
+				return toCFML(coll.count(toDBObject(args[0])));
+			}
+		}
 		// dataSize
 		if(methodName.equals("dataSize")) {
 			checkArgLength("dataSize",args,0,0);
