@@ -464,7 +464,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		}
 
 
-		String functionNames = "aggregate,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes,getWriteConcern,find,findOne,findAndRemove,findAndModify," +
+		String functionNames = "aggregate,count,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes,getWriteConcern,find,findOne,findAndRemove,findAndModify," +
 		"group,insert,mapReduce,remove,rename,save,setWriteConcern,storageSize,totalIndexSize,update";
 
 		throw exp.createApplicationException("function "+methodName+" does not exist existing functions are ["+functionNames+"]");
