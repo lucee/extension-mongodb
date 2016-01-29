@@ -21,7 +21,9 @@ package org.lucee.mongodb;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.HashMap;
 
 import org.lucee.mongodb.support.DBCollectionImplSupport;
 import org.lucee.mongodb.util.print;
@@ -32,6 +34,10 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.WriteConcern;
 import com.mongodb.AggregationOptions;
+import com.mongodb.BulkWriteOperation;
+import com.mongodb.BulkWriteResult;
+import com.mongodb.BulkWriteException;
+import com.mongodb.BulkWriteError;
 
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
@@ -358,6 +364,79 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				);
 		}
 
+		// insertMany(required array documents, struct options) valid options keys are string "writeconcern", boolean "ordered"
+		if(methodName.equals("insertMany")) {
+			int len = checkArgLength("insert",args,1,2);
+			BulkWriteOperation bulk = coll.initializeOrderedBulkOperation();
+			WriteConcern wc = coll.getWriteConcern();
+
+			if (len==2) {
+				DBObject dboOpts = toDBObject(args[1]);
+				if (dboOpts.containsField("ordered")){
+					if (!decision.isBoolean(dboOpts.get("ordered")))
+						throw exp.createApplicationException("ordered in options must be boolean value");
+
+					if (!caster.toBooleanValue(dboOpts.get("ordered"))) {
+						bulk = coll.initializeUnorderedBulkOperation();
+					}
+				}
+
+				if (dboOpts.containsField("writeconcern")){
+					WriteConcern newWc = WriteConcern.valueOf(caster.toString(dboOpts.get("writeconcern")));
+					if (newWc != null) {
+						wc = newWc;
+					}
+				}
+			}
+
+			Map result = new HashMap();
+			BulkWriteResult bulkResult;
+			List<Map> writeErrors = new ArrayList();
+			
+			Array arr = caster.toArray(args[0]);
+			if(arr.size()==0) {
+				result.put("nInserted",0);	
+				result.put("writeErrors",writeErrors);	
+				result.put("acknowledged",true);
+				return toCFML(result);	
+			}
+
+			Iterator<Object> it = arr.valueIterator();
+			while(it.hasNext()){
+				bulk.insert(toDBObject(it.next()));
+			}
+
+			try {
+				bulkResult = bulk.execute(wc);
+			} catch (BulkWriteException e) {
+				Map bulkErrorItem;
+				BulkWriteError bulkError;
+	
+				bulkResult = e.getWriteResult();
+				List<BulkWriteError> errors = e.getWriteErrors();
+
+				Iterator<BulkWriteError> jj = errors.iterator();
+				while (jj.hasNext()) {
+					bulkErrorItem = new HashMap();
+					bulkError = jj.next();
+					bulkErrorItem.put("index",(bulkError.getIndex()+1)); // +1 so we get index of item in CFML array
+					bulkErrorItem.put("code",bulkError.getCode());
+					bulkErrorItem.put("errmsg",bulkError.getMessage());
+					bulkErrorItem.put("op",bulkError.getDetails());
+					writeErrors.add( bulkErrorItem );
+				}
+			}
+
+			result.put("acknowledged", bulkResult.isAcknowledged());
+			if (bulkResult.isAcknowledged()) {
+				result.put("nInserted", bulkResult.getInsertedCount());
+				result.put("writeErrors", writeErrors);
+			}
+
+			return toCFML(result);
+		}
+
+
 		//mapReduce
 		/*
 			TODO: needs MapReduceCommand
@@ -465,7 +544,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 
 		String functionNames = "aggregate,count,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes,getWriteConcern,find,findOne,findAndRemove,findAndModify," +
-		"group,insert,mapReduce,remove,rename,save,setWriteConcern,storageSize,totalIndexSize,update";
+		"group,insert,insertMany,mapReduce,remove,rename,save,setWriteConcern,storageSize,totalIndexSize,update";
 
 		throw exp.createApplicationException("function "+methodName+" does not exist existing functions are ["+functionNames+"]");
 	}

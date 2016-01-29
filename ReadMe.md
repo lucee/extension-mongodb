@@ -43,7 +43,7 @@ Two built-in-functions (BIFs) are also installed with the extension: MongoDBID()
 
 <strong>MongoDBID()</strong> creates MongoDB Object ID values and takes no argument, or a single argument of either a <strong>string</strong> (must be valid ObjectID string) or a <strong>date</strong> and returns an ObjectID. See: http://docs.mongodb.org/manual/core/object-id
 
-MongoDBObject() creates an ordered BasicDBObject, which is essentially a struct with keys that iterate in predictable order. This is useful in MongoDB for passing in structs where key order needs to be maintained (such as in sort() or ensureIndex() operations). MongoDBObject() takes any number of arguments and returns a BasicDBObject. Example:
+MongoDBObject() creates an ordered BasicDBObject, which is essentially a struct with keys that iterate in predictable order. This is useful in MongoDB for passing in structs where key order needs to be maintained (such as in sort() or createIndex() operations). MongoDBObject() takes any number of arguments and returns a BasicDBObject. Example:
 
 <pre><code>
 db.getCollection("test").find({}).sort(MongoDBObject("sortFirst":1, "sortSecond":-1));
