@@ -13,10 +13,11 @@ Built-Date: ${NOW}
 version: "${bundleversion}${build.number}"
 id: "${id}"
 name: "${label}"
+lucee-core-version: "${luceeCoreVersion}”
+release-type: ${releaseType}
 description: "${description}"
 start-bundles: false
 trial: false
-lucee-core-version: "5.0.0.021"
 </echo>
 
 
