@@ -4,21 +4,22 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.mongodb.support;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -46,6 +47,7 @@ import lucee.runtime.util.Excepton;
 import org.bson.types.ObjectId;
 import org.lucee.mongodb.AggregationOutputImpl;
 import org.lucee.mongodb.CommandResultImpl;
+import org.lucee.mongodb.CursorImpl;
 import org.lucee.mongodb.DBCollectionImpl;
 import org.lucee.mongodb.DBCursorImpl;
 import org.lucee.mongodb.DBImpl;
@@ -56,6 +58,7 @@ import org.lucee.mongodb.util.SimpleDumpData;
 import com.mongodb.AggregationOutput;
 import com.mongodb.BasicDBObject;
 import com.mongodb.CommandResult;
+import com.mongodb.Cursor;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
@@ -82,7 +85,7 @@ public class ObjectSupport {
 		throw new UnsupportedOperationException("this operation is not suppored");
 	}
 
-	public int checkArgLength(String functionName,Object[] arguments,int min, int max) throws PageException { 
+	public int checkArgLength(String functionName,Object[] arguments,int min, int max) throws PageException {
 		if(arguments==null) arguments=new Object[0];
 		if(min>=0 && arguments.length<min)
 			throw exp.createApplicationException("the function "+functionName+" needs at least "+min+" arguments, but you have defined only "+(arguments==null?0:arguments.length));
@@ -104,16 +107,16 @@ public class ObjectSupport {
 		}
 		return new DBObject[]{toDBObject(obj)};
 	}
-	
+
 	public DBObject toDBObject(Struct sct) {
 		return new BasicDBObject(toMongo(sct));
 	}
-	
+
 	public DBObject toDBObject(Object obj) throws PageException {
 		if(obj instanceof DBObject) return (DBObject) obj;
 		return toDBObject(caster.toMap(obj),null);
 	}
-	
+
 	public DBObject toDBObject(Object obj, DBObject defaultValue) {
 		if(obj instanceof DBObject) return (DBObject) obj;
 		Object mo = toMongo(obj);
@@ -129,8 +132,6 @@ public class ObjectSupport {
 			str=str.trim().toUpperCase();
 			if("ACKNOWLEDGED".equals(str))
 				return WriteConcern.ACKNOWLEDGED;
-			else if("ERRORS_IGNORED".equals(str) || "ERRORSIGNORED".equals(str))
-				return WriteConcern.ERRORS_IGNORED;
 			else if("ACKNOWLEDGED".equals(str))
 				return WriteConcern.FSYNC_SAFE;
 			else if("FSYNC_SAFE".equals(str) || "FSYNCSAFE".equals(str))
@@ -141,8 +142,6 @@ public class ObjectSupport {
 				return WriteConcern.JOURNALED;
 			else if("MAJORITY".equals(str))
 				return WriteConcern.MAJORITY;
-			else if("NONE".equals(str))
-				return WriteConcern.NONE;
 			else if("NORMAL".equals(str))
 				return WriteConcern.NORMAL;
 			else if("REPLICA_ACKNOWLEDGED".equals(str) || "REPLICAACKNOWLEDGED".equals(str))
@@ -183,6 +182,7 @@ public class ObjectSupport {
 		if(obj instanceof DBObject) return new DBObjectImpl((DBObject) obj);
 		if(obj instanceof DBCollection) return new DBCollectionImpl((DBCollection) obj);
 		if(obj instanceof DBCursor) return new DBCursorImpl((DBCursor) obj);
+		if(obj instanceof Cursor) return new CursorImpl((Cursor) obj);
 		if(obj instanceof DB) return new DBImpl((DB) obj);
 		if(obj instanceof ObjectId) return new ObjectIdImpl((ObjectId) obj);
 		if(obj instanceof Set) {
@@ -195,15 +195,15 @@ public class ObjectSupport {
 			return arr;
 		}
 		if(obj instanceof Number && !(obj instanceof Double)) return CFMLEngineFactory.getInstance().getCastUtil().toDouble(obj,null);
-		
+
 		//if(obj!=null)print.e("toCFML:"+obj+":"+obj.getClass().getName());
-		
+
 		return obj;
 	}
 
-	
-	
-	
+
+
+
 	public Object toMongo(Object obj) {
 		if(obj instanceof List || decision.isArray(obj)) {
 			List list = caster.toList(obj,null);
@@ -214,38 +214,44 @@ public class ObjectSupport {
 			}
 			return rtn;
 		}
+		if(obj instanceof Date) {
+			return new Date(((Date) obj).getTime());
+			// Java 8 only:
+			// return Date.from(((Date) obj).toInstant());
+		}
 		if(obj instanceof Map || decision.isStruct(obj)) {
 			return toMongo(caster.toMap(obj,null));
 		}
-		
+
 		if(obj instanceof AggregationOutputImpl) return ((AggregationOutputImpl) obj).getAggregationOutput();
 		if(obj instanceof CommandResultImpl) return ((CommandResultImpl) obj).getDBObject();
+		if(obj instanceof CursorImpl) return ((CursorImpl) obj).getCursor();
 		if(obj instanceof DBObjectImpl) return ((DBObjectImpl) obj).getDBObject();
 		if(obj instanceof DBCollectionImpl) return ((DBCollectionImpl) obj).getDBCollection();
 		if(obj instanceof DBCursorImpl) return ((DBCursorImpl) obj).getDBCursor();
 		if(obj instanceof DBImpl) return ((DBImpl) obj).getDB();
 		if(obj instanceof ObjectIdImpl) return ((ObjectIdImpl) obj).getObjectId();
 		//if(obj instanceof Struct) return toDBObject((Struct)obj);
-		
+
 		return obj;
 	}
-	
-	public Map toMongo(Map map) {
-			// single record in Map
-			if(map.size()==1) {
-				Entry e=(Entry) map.entrySet().iterator().next();
-				return new BasicDBObject(caster.toString(e.getKey(),null), toMongo(e.getValue()));
-			}
-			
-			// multiple records
-			Map rtn=new HashMap();
-			Iterator it = map.entrySet().iterator();
-			Entry e;
-			while(it.hasNext()){
-				e = (Map.Entry)it.next();
-				rtn.put(toMongo(e.getKey()), toMongo(e.getValue()));
-			}
-			return rtn;
+
+	public BasicDBObject toMongo(Map map) {
+		// single record in Map
+		if(map.size()==1) {
+			Entry e=(Entry) map.entrySet().iterator().next();
+			return new BasicDBObject(caster.toString(e.getKey(),null), toMongo(e.getValue()));
+		}
+
+		// multiple records
+		Map rtn=new HashMap();
+		Iterator it = map.entrySet().iterator();
+		Entry e;
+		while(it.hasNext()){
+			e = (Map.Entry)it.next();
+			rtn.put(toMongo(e.getKey()), toMongo(e.getValue()));
+		}
+		return new BasicDBObject(rtn);
 	}
 
 	public Object[] toNativeMongoArray(Object object) {
@@ -261,15 +267,16 @@ public class ObjectSupport {
 		}
 		else return new Object[]{toMongo(object)};
 	}
-	
+
 	public DumpData __toDumpData(Object obj, PageContext pageContext, int maxlevel, DumpProperties dp) {
 		if(obj instanceof Dumpable)
 			return ((Dumpable)obj).toDumpData(pageContext, maxlevel, dp);
 		if(CFMLEngineFactory.getInstance().getDecisionUtil().isSimpleValue(obj))
 			return new SimpleDumpData(caster.toString(obj,null));
-		return new SimpleDumpData(obj.toString());
+		return new SimpleDumpData("");
+		// return new SimpleDumpData(obj.toString());
 	}
-	
+
 	public static Set<Entry<String, Object>> entrySet(Collection coll) {
 		Iterator<Entry<Key, Object>> it = coll.entryIterator();
 		Entry<Key, Object> e;
@@ -280,7 +287,7 @@ public class ObjectSupport {
 		}
 		return set;
 	}
-	
+
 	public static java.util.Collection<?> values(Collection coll) {
 		ArrayList<Object> arr = new ArrayList<Object>();
 		//Key[] keys = sct.keys();
@@ -290,7 +297,7 @@ public class ObjectSupport {
 		}
 		return arr;
 	}
-	
+
 	public void putAll(Collection coll, Map map) {
 		Iterator it = map.entrySet().iterator();
 		Map.Entry entry;
@@ -299,9 +306,9 @@ public class ObjectSupport {
 			coll.setEL(caster.toKey(entry.getKey(),null), entry.getValue());
 		}
 	}
-	
+
 	public static class CollectionMapEntry implements Map.Entry<String,Object> {
-		
+
 		private Collection.Key key;
 		private Object value;
 		private Collection coll;
@@ -311,7 +318,7 @@ public class ObjectSupport {
 			this.key=key;
 			this.value=value;
 		}
-		
+
 		@Override
 		public String getKey() {
 			return key.getString();
@@ -327,6 +334,6 @@ public class ObjectSupport {
 			this.value=value;
 			return old;
 		}
-		
+
 	}
 }

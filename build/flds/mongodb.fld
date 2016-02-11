@@ -7,12 +7,12 @@
 	<uri>http://www.lucee.org/mongodb/1_0_0</uri>
 	<display-name>MongoDB functions</display-name>
 	<description></description>
-	
+
 
 	<function>
 		<name>MongoDBConnect</name>
-		<class 
-			bundle-name="{bundle-name}" 
+		<class
+			bundle-name="{bundle-name}"
 			bundle-version="{bundle-version}">org.lucee.mongodb.MongoDBConnect</class>
 		<description>Connects to a MongoDB and pools connection returned</description>
 		<argument>
@@ -27,7 +27,7 @@
 			<alias>server</alias>
 			<type>String</type>
 			<required>no</required>
-			<description>host name of the MongoDB</description>
+			<description>host name of the MongoDB or mongodb:// URI string</description>
 		</argument>
 		<argument>
 			<name>port</name>
@@ -42,15 +42,21 @@
 
 	<function>
 		<name>MongoDBId</name>
-		<class 
-			bundle-name="{bundle-name}" 
+		<class
+			bundle-name="{bundle-name}"
 			bundle-version="{bundle-version}">org.lucee.mongodb.MongoDBId</class>
 		<description>Creates a new MongoDB id (ObjectId)</description>
+		<argument>
+			<name>initArg</name>
+			<type>any</type>
+			<required>no</required>
+			<description>Date or hexString to create object ID from</description>
+		</argument>
 		<return>
 			<type>object</type>
 		</return>
 	</function>
-	
-	
-	
+
+
+
 </func-lib>

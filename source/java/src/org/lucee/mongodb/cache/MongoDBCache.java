@@ -37,7 +37,7 @@ public class MongoDBCache implements Cache {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		caster = engine.getCastUtil();
 
-		
+
 			MongoConnection.init(arguments);
 
 			this.persists = caster.toBoolean(arguments.get("persist"));
@@ -50,7 +50,7 @@ public class MongoDBCache implements Cache {
 			}
 
 			//create the indexes
-			crateIndexes();
+			createIndexes();
 
 			// start the cleaner schdule that remove entries by expires time and idle time
 			startCleaner();
@@ -73,7 +73,7 @@ public class MongoDBCache implements Cache {
 		return MongoConnection.getInstance() .getDB(this.database).getCollection(this.collectionName);
 	}
 
-	protected void crateIndexes() {
+	protected void createIndexes() {
 		DBCollection coll = getCollection();
 		// create the indexes
 		coll.createIndex(new BasicDBObject("key", 1));
@@ -147,7 +147,7 @@ public class MongoDBCache implements Cache {
 		if(ce!=null) return ce;
 		throw new CacheException("The document with key [" + key + "] has not been found int this cache.");
 	}
-	
+
 	public CacheEntry getCacheEntry(String key, CacheEntry defaultValue) {
 		DBCursor cur = null;
 		DBCollection coll = getCollection();
@@ -178,7 +178,7 @@ public class MongoDBCache implements Cache {
 		if(value>=0)info.setEL("hit_count", new Double(value));
 		value = missCount();
 		if(value>=0)info.setEL("miss_count", new Double(value));
-		
+
 		return info;
 	}
 
@@ -251,7 +251,7 @@ public class MongoDBCache implements Cache {
 
 	@Override
 	public void put(String key, Object value, Long idleTime, Long lifeSpan) {
-		
+
 		long created = System.currentTimeMillis();
 		long idle = idleTime==null ?0:idleTime.longValue();
 		long life = lifeSpan==null ?0:lifeSpan.longValue();
@@ -263,7 +263,7 @@ public class MongoDBCache implements Cache {
 		//doc.setLifeSpan(life);
 		doc.setHits(0);
 		doc.setExpires(life==0? 0 : life+created );
-		
+
 		try {
 			doc.setValue(value);
 		}
@@ -328,7 +328,7 @@ public class MongoDBCache implements Cache {
 		List<Object> result = new ArrayList<Object>();
 
 		while (cur.hasNext()) {
-			try {	
+			try {
 				result.add(MongoDBCacheDocument.getValue((BasicDBObject) cur.next()));
 			} catch (Exception e) {
 				throw new RuntimeException(e);

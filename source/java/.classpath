@@ -4,7 +4,7 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
 	<classpathentry kind="lib" path="libs/javax.servlet.jar"/>
 	<classpathentry kind="lib" path="libs/lucee.jar"/>
-	<classpathentry kind="lib" path="libs/mongo-java-driver-2.13.0.jar"/>
+	<classpathentry kind="lib" path="libs/mongo-java-driver-3.2.0.jar"/>
 	<classpathentry kind="lib" path="libs/org-apache-oro-2-0-8.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
