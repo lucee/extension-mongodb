@@ -436,19 +436,6 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			return toCFML(result);
 		}
 
-
-		//mapReduce
-		/*
-			TODO: needs MapReduceCommand
-		if(methodName.equals("mapReduce")) {
-			int len=checkArgLength("mapReduce",args,1,1);
-			if(len==1){
-				return toCFML(coll.mapReduce(
-					toDBObject(args[0])
-				));
-			}
-		}*/
-
 		//mapReduce
 		if(methodName.equals("mapReduce")) {
 			int len=checkArgLength("mapReduce",args,4,4);
