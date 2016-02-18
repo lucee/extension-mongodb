@@ -1,8 +1,7 @@
 <cfscript>
-
 request.cache.mongodb.class="org.lucee.mongodb.cache.MongoDBCache";
 request.cache.mongodb.custom={
-	'collection':'test',
+	'collection':'testcache',
 	'password':'',
 	'connectionsPerHost':'10',
 	'database':'test',
@@ -10,5 +9,10 @@ request.cache.mongodb.custom={
 	'persist':'true',
 	'username':''};
 
+server.system.properties.MONGODB_HOST = "localhost";
+server.system.properties.MONGODB_PORT = 27017;
+server.system.properties.MONGODB_USERNAME = "";
+server.system.properties.MONGODB_PASSWORD = "";
 
+request.webadminpassword = "";
 </cfscript>

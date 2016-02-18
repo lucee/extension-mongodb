@@ -20,7 +20,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase"	{
 
 	//public function setUp(){}
 
-	public void function test(){
+	public void function testDate(){
 		createCache();
 
 		// store a value to the cache that expires after a second
@@ -33,39 +33,56 @@ component extends="org.lucee.cfml.test.LuceeTestCase"	{
 		var value = cacheGet(id="cacheTestTemp");
 		assertTrue(isNull(value));
 
-
-
-
-/*
-if (isdefined("value")) {
-	htmlhead text='<meta http-equiv="Refresh" content="1;url=TestCacheTimeout.cfm?cache=#url.cache#&timeout=#url.timeout#">';
-	writeoutput('still cached: ');
-} else {
-	writeoutput('disappeared from cache: ');
-}
-writeoutput('#TimeFormat( elapsed, "m" )# Minutes, #TimeFormat( elapsed, "s" )# Seconds <br>');
-
-
-
-
-
-		setting showdebugoutput="no" requesttimeout="1000";
-		http result="local.result" url="#createURL("Issue0001/set.cfm")#" addtoken="true";
-		assertEquals(true,isDate(result.filecontent.trim()));
-		http result="local.result" url="#createURL("Issue0001/get.cfm")#" addtoken="true";
-		sleep(10000);
-		http method="get" result="local.result" url="#createURL("Issue0001/get.cfm")#" addtoken="true";
-		assertEquals(false,isDate(result.filecontent.trim()));
-		*/
 		deleteCache();
-		/*
-		assertEquals("",result.filecontent);
+	}
+
+	public void function testNumeric(){
+		createCache();
+
+		// store a value to the cache that expires after a second
+		cachePut(id="cacheTestTemp", value=100, timeSpan=createTimespan(0,0,0,1));
 		
-		try{
-			// error
-			fail("");
-		}
-		catch(local.exp){}*/
+		// after a couple of nanos schould still exists
+		var value = cacheGet(id="cacheTestTemp");
+		assertTrue(!isNull(value) && isNumeric(value));
+		deleteCache();
+	}
+	
+	public void function testStruct(){
+		createCache();
+
+		// store a value to the cache that expires after a second
+		cachePut(id="cacheTestTemp", value={"foo":"bar"}, timeSpan=createTimespan(0,0,0,1));
+		
+		// after a couple of nanos schould still exists
+		var value = cacheGet(id="cacheTestTemp");
+		assertTrue(!isNull(value) && isStruct(value) && structkeyexists(value,"foo"));
+		deleteCache();
+	}
+
+	public void function testArray(){
+		createCache();
+
+		// store a value to the cache that expires after a second
+		cachePut(id="cacheTestTemp", value=[1,2,3], timeSpan=createTimespan(0,0,0,1));
+		
+		// after a couple of nanos schould still exists
+		var value = cacheGet(id="cacheTestTemp");
+		assertTrue(!isNull(value) && isArray(value) && value.len()==3);
+		deleteCache();
+	}
+
+	public void function testString(){
+		createCache();
+
+		// store a value to the cache that expires after a second
+		cachePut(id="cacheTestTemp", value="FooBar", timeSpan=createTimespan(0,0,0,1));
+		
+		// after a couple of nanos schould still exists
+		var value = cacheGet(id="cacheTestTemp");
+		assertTrue(!isNull(value));
+		$assert.isEqual("FooBar",value);
+		deleteCache();
 	}
 	
 	private string function createURL(string calledName){
