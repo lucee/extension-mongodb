@@ -9,7 +9,7 @@ request.cache.mongodb.custom={
 	'persist':'true',
 	'username':''};
 
-server.system.properties.MONGODB_HOST = "localhost";
+server.system.properties.MONGODB_SERVER = "localhost";
 server.system.properties.MONGODB_PORT = 27017;
 server.system.properties.MONGODB_USERNAME = "";
 server.system.properties.MONGODB_PASSWORD = "";
