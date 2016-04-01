@@ -147,8 +147,13 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 
 	@Override
 	public Object call(PageContext pc, Key methodName, Object[] args) throws PageException {
+		// getObjectId
+		if(methodName.equals("getObjectId")) {
+			checkArgLength("getObjectId",args,0,0);
+			return toMongo(id);
+		}
 		// getDate
-		if(methodName.equals("getDate")) {
+		else if(methodName.equals("getDate")) {
 			checkArgLength("getDate",args,0,0);
 			return toCFML(id.getDate());
 		}
