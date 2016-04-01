@@ -24,7 +24,7 @@
 	"mongodb-extension-1.0.0.10.jar","mongodb-extension-1.0.0.11.jar","mongodb-extension-1.0.0.12.jar","mongodb-extension-1.0.0.13.jar","mongodb-extension-1.0.0.14.jar","mongodb-extension-1.0.0.15.jar","mongodb-extension-1.0.0.16.jar","mongodb-extension-1.0.0.17.jar","mongodb-extension-1.0.0.18.jar","mongodb-extension-1.0.0.19.jar",
 	"mongodb-extension-1.0.0.20.jar","mongodb-extension-1.0.0.21.jar","mongodb-extension-1.0.0.22.jar","mongodb-extension-1.0.0.23.jar","mongodb-extension-1.0.0.24.jar","mongodb-extension-1.0.0.25.jar","mongodb-extension-1.0.0.26.jar","mongodb-extension-1.0.0.27.jar","mongodb-extension-1.0.0.28.jar","mongodb-extension-1.0.0.29.jar",
 	"mongodb-extension-1.0.0.30.jar","mongodb-extension-1.0.0.31.jar","mongodb-extension-1.0.0.32.jar","mongodb-extension-1.0.0.33.jar","mongodb-extension-1.0.0.34.jar","mongodb-extension-1.0.0.35.jar","mongodb-extension-1.0.0.36.jar","mongodb-extension-1.0.0.37.jar","mongodb-extension-1.0.0.38.jar","mongodb-extension-1.1.0.45.jar",
-	"mongodb-extension-1.1.0.46.jar","mongodb-extension-1.1.0.47.jar","mongodb-extension-3.2.0.48.jar"
+	"mongodb-extension-1.1.0.46.jar","mongodb-extension-1.1.0.47.jar","mongodb-extension-3.2.0.48.jar","mongodb-extension-3.2.2.52.jar"
 	]>
     <cfset variables.previousTLDs=[]>
 
