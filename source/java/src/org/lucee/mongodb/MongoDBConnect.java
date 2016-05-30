@@ -18,12 +18,12 @@
  **/
 package org.lucee.mongodb;
 
-import com.mongodb.MongoException;
-
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.runtime.PageContext;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.ext.function.Function;
+
+import com.mongodb.MongoException;
 
 public class MongoDBConnect implements Function {
 

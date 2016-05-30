@@ -19,8 +19,6 @@
 package org.lucee.mongodb;
 
 
-import org.lucee.mongodb.support.CursorImplSupport;
-
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
 import lucee.runtime.dump.DumpProperties;
@@ -29,8 +27,9 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
 
+import org.lucee.mongodb.support.CursorImplSupport;
+
 import com.mongodb.Cursor;
-import com.mongodb.DBObject;
 
 public class CursorImpl extends CursorImplSupport {
 
