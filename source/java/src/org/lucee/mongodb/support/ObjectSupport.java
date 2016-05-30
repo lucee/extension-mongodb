@@ -20,9 +20,9 @@ package org.lucee.mongodb.support;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -244,7 +244,7 @@ public class ObjectSupport {
 		}
 
 		// multiple records
-		Map rtn=new HashMap();
+		Map<Object, Object> rtn=new LinkedHashMap<Object, Object>();
 		Iterator it = map.entrySet().iterator();
 		Entry e;
 		while(it.hasNext()){
