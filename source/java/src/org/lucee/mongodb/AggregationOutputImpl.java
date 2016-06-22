@@ -25,7 +25,6 @@ import org.lucee.mongodb.support.ObjectSupport;
 
 import com.mongodb.AggregationOutput;
 import com.mongodb.DBObject;
-import com.mongodb.ServerAddress;
 
 public class AggregationOutputImpl extends ObjectSupport {
 

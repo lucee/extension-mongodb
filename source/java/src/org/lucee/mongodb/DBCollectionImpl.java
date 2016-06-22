@@ -19,25 +19,10 @@
 package org.lucee.mongodb;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.HashMap;
-
-import org.lucee.mongodb.support.DBCollectionImplSupport;
-import org.lucee.mongodb.util.print;
-
-import com.mongodb.DBCollection;
-import com.mongodb.Cursor;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.WriteConcern;
-import com.mongodb.AggregationOptions;
-import com.mongodb.BulkWriteOperation;
-import com.mongodb.BulkWriteResult;
-import com.mongodb.BulkWriteException;
-import com.mongodb.BulkWriteError;
 
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
@@ -45,10 +30,20 @@ import lucee.runtime.dump.DumpProperties;
 import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Array;
-import lucee.runtime.type.Collection;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
-import lucee.runtime.type.dt.DateTime;
+
+import org.lucee.mongodb.support.DBCollectionImplSupport;
+
+import com.mongodb.AggregationOptions;
+import com.mongodb.BulkWriteError;
+import com.mongodb.BulkWriteException;
+import com.mongodb.BulkWriteOperation;
+import com.mongodb.BulkWriteResult;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.WriteConcern;
 
 public class DBCollectionImpl extends DBCollectionImplSupport {
 
@@ -388,10 +383,9 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					}
 				}
 			}
-
-			Map result = new HashMap();
+			Map<String, Object> result=new LinkedHashMap<String, Object>();
 			BulkWriteResult bulkResult;
-			List<Map> writeErrors = new ArrayList();
+			List<Map> writeErrors = new ArrayList<Map>();
 			
 			Array arr = caster.toArray(args[0]);
 			if(arr.size()==0) {
@@ -409,7 +403,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			try {
 				bulkResult = bulk.execute(wc);
 			} catch (BulkWriteException e) {
-				Map bulkErrorItem;
+				Map<String, Object> bulkErrorItem;
 				BulkWriteError bulkError;
 	
 				bulkResult = e.getWriteResult();
@@ -417,7 +411,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 				Iterator<BulkWriteError> jj = errors.iterator();
 				while (jj.hasNext()) {
-					bulkErrorItem = new HashMap();
+					bulkErrorItem=new LinkedHashMap<String, Object>();
 					bulkError = jj.next();
 					bulkErrorItem.put("index",(bulkError.getIndex()+1)); // +1 so we get index of item in CFML array
 					bulkErrorItem.put("code",bulkError.getCode());
