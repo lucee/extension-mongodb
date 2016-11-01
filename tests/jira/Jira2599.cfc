@@ -209,6 +209,43 @@ component extends="org.lucee.cfml.test.LuceeTestCase"	{
 		$assert.isEqual( 0, coll.count() );
 	}
 
+	public void function testBulkWrite() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// insert 3 docs
+		coll.bulkWrite([
+			 {"operation":"insert", "document":{"_id":6, "grp":3, "name":"Six"}}
+			,{"operation":"insert", "document":{"_id":7, "grp":3, "name":"Seven"}}
+			,{"operation":"insert", "document":{"_id":8, "grp":3, "name":"Eight"}}
+		]);
+		$assert.isEqual( 8, coll.count() );
+
+		// update 2 docs
+		coll.bulkWrite([
+			 {"operation":"updateOne", "query":{"_id":6}, "update":{"$set":{"name":"Six Edited"}}}
+			,{"operation":"updateOne", "query":{"_id":7}, "update":{"$set":{"name":"Seven Edited"}}}
+		]);
+		$assert.isEqual( "Six Edited", coll.findOne({"_id":6}).name );
+		$assert.isEqual( "Seven Edited", coll.findOne({"_id":7}).name );
+
+		var bwResult = coll.bulkWrite([
+			 {"operation":"update", "query":{"grp":3}, "update":{"$set":{"updated":true}}}
+		]);
+		$assert.isEqual( 3, bwResult.nModified );
+		$assert.isEqual( 3, coll.count({"updated":true}) );
+
+		// update one & remove a couple docs
+		var bwResult = coll.bulkWrite([
+			 {"operation":"updateOne", "query":{"_id":6}, "update":{"$set":{"name":"Six"}}}
+			,{"operation":"removeOne", "query":{"_id":7}}
+			,{"operation":"removeOne", "query":{"_id":8}}
+		],{"bypassDocumentValidation":true});
+		$assert.isEqual( 1, bwResult.nModified );
+		$assert.isEqual( 2, bwResult.nRemoved );
+		$assert.isEqual( "Six", coll.findOne({"_id":6}).name );
+		$assert.isEqual( 6, coll.count() );
+	}
+
 	public void function testAggregateResults() skip="isNotSupported" {
 		var coll = resetTestCollection();
 

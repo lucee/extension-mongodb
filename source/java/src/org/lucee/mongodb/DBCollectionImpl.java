@@ -361,7 +361,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 		// insertMany(required array documents, struct options) valid options keys are string "writeconcern", boolean "ordered"
 		if(methodName.equals("insertMany")) {
-			int len = checkArgLength("insert",args,1,2);
+			int len = checkArgLength("insertMany",args,1,2);
 			BulkWriteOperation bulk = coll.initializeOrderedBulkOperation();
 			WriteConcern wc = coll.getWriteConcern();
 
@@ -424,6 +424,114 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			result.put("acknowledged", bulkResult.isAcknowledged());
 			if (bulkResult.isAcknowledged()) {
 				result.put("nInserted", bulkResult.getInsertedCount());
+				result.put("writeErrors", writeErrors);
+			}
+
+			return toCFML(result);
+		}
+
+		// bulkWrite(required array operations, struct options) valid options keys are string "writeconcern", boolean "ordered", boolean "bypassDocumentValidation"
+		// an operation is a struct with the following keys: { "operation":[insert|update|updateOne|remove|removeOne], "document":[(required if operation is insert) - a doc to insert], "query":[(optional) - the query to find for remove/update operations], "update":[(required for update/updateOne) - the update document] }
+		// i.e. dbCollection.bulkWrite([
+		//		 {"operation":"insert", "document":{"test":"insert"}}
+		//	 	,{"operation":"updateOne", "query":{"_id":"foo"}, "update":{"$set":{"updated":true}}}			
+		//	 	,{"operation":"removeOne", "query":{"_id":"goaway"}}			
+		// ],{"ordered":false})
+		if(methodName.equals("bulkWrite")) {
+			int len = checkArgLength("bulkWrite",args,1,2);
+			BulkWriteOperation bulk = coll.initializeOrderedBulkOperation();
+			WriteConcern wc = coll.getWriteConcern();
+
+			if (len==2) {
+				DBObject dboOpts = toDBObject(args[1]);
+				if (dboOpts.containsField("ordered")){
+					if (!decision.isBoolean(dboOpts.get("ordered")))
+						throw exp.createApplicationException("ordered in options must be boolean value");
+
+					if (!caster.toBooleanValue(dboOpts.get("ordered"))) {
+						bulk = coll.initializeUnorderedBulkOperation();
+					}
+				}
+
+				if (dboOpts.containsField("bypassDocumentValidation")){
+					if (!decision.isBoolean(dboOpts.get("bypassDocumentValidation")))
+						throw exp.createApplicationException("bypassDocumentValidation in options must be boolean value");
+
+					bulk.setBypassDocumentValidation(caster.toBooleanValue(dboOpts.get("bypassDocumentValidation")));
+				}
+
+				if (dboOpts.containsField("writeconcern")){
+					WriteConcern newWc = WriteConcern.valueOf(caster.toString(dboOpts.get("writeconcern")));
+					if (newWc != null) {
+						wc = newWc;
+					}
+				}
+			}
+			Map<String, Object> result=new LinkedHashMap<String, Object>();
+			BulkWriteResult bulkResult;
+			List<Map> writeErrors = new ArrayList<Map>();
+			
+			Array arr = caster.toArray(args[0]);
+			if(arr.size()==0) {
+				result.put("nInserted",0);	
+				result.put("nMatched",0);	
+				result.put("nModified",0);	
+				result.put("nRemoved",0);	
+				result.put("writeErrors",writeErrors);	
+				result.put("acknowledged",true);
+				return toCFML(result);	
+			}
+
+			Iterator<Object> it = arr.valueIterator();
+			while(it.hasNext()){
+
+				DBObject operation = toDBObject(it.next());
+				
+				if (operation.get("operation")=="update") {
+					// do stuff to add update operation
+					bulk.find( toDBObject( operation.get("query") ) ).update( toDBObject( operation.get("update") ) );
+				} else if (operation.get("operation")=="updateOne") {
+					// do stuff to add updateOne operation
+					bulk.find( toDBObject( operation.get("query") ) ).updateOne( toDBObject( operation.get("update") ) );
+				} else if (operation.get("operation")=="remove") {
+					// do stuff to add remove operation
+					bulk.find( toDBObject( operation.get("query") ) ).remove();
+				} else if (operation.get("operation")=="removeOne") {
+					// do stuff to add removeOne operation
+					bulk.find( toDBObject( operation.get("query") ) ).removeOne();
+				} else if (operation.get("operation")=="insert") {
+					bulk.insert(toDBObject(operation.get("document")));
+				}
+
+			}
+
+			try {
+				bulkResult = bulk.execute(wc);
+			} catch (BulkWriteException e) {
+				Map<String, Object> bulkErrorItem;
+				BulkWriteError bulkError;
+	
+				bulkResult = e.getWriteResult();
+				List<BulkWriteError> errors = e.getWriteErrors();
+
+				Iterator<BulkWriteError> jj = errors.iterator();
+				while (jj.hasNext()) {
+					bulkErrorItem=new LinkedHashMap<String, Object>();
+					bulkError = jj.next();
+					bulkErrorItem.put("index",(bulkError.getIndex()+1)); // +1 so we get index of item in CFML array
+					bulkErrorItem.put("code",bulkError.getCode());
+					bulkErrorItem.put("errmsg",bulkError.getMessage());
+					bulkErrorItem.put("op",bulkError.getDetails());
+					writeErrors.add( bulkErrorItem );
+				}
+			}
+
+			result.put("acknowledged", bulkResult.isAcknowledged());
+			if (bulkResult.isAcknowledged()) {
+				result.put("nInserted", bulkResult.getInsertedCount());
+				result.put("nMatched", bulkResult.getMatchedCount());
+				result.put("nModified", bulkResult.getModifiedCount());
+				result.put("nRemoved", bulkResult.getRemovedCount());
 				result.put("writeErrors", writeErrors);
 			}
 
@@ -525,7 +633,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 
 		String functionNames = "aggregate,count,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes,getWriteConcern,find,findOne,findAndRemove,findAndModify," +
-		"group,insert,insertMany,mapReduce,remove,rename,save,setWriteConcern,storageSize,totalIndexSize,update";
+		"group,insert,insertMany,bulkWrite,mapReduce,remove,rename,save,setWriteConcern,storageSize,totalIndexSize,update";
 
 		throw exp.createApplicationException("function "+methodName+" does not exist existing functions are ["+functionNames+"]");
 	}
