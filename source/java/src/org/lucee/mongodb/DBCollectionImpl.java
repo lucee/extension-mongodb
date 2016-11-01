@@ -361,7 +361,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 		// insertMany(required array documents, struct options) valid options keys are string "writeconcern", boolean "ordered"
 		if(methodName.equals("insertMany")) {
-			int len = checkArgLength("insert",args,1,2);
+			int len = checkArgLength("insertMany",args,1,2);
 			BulkWriteOperation bulk = coll.initializeOrderedBulkOperation();
 			WriteConcern wc = coll.getWriteConcern();
 
