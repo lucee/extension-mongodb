@@ -7,15 +7,15 @@
 
   <buildnumber file="build.number"/>
   <property file="build.properties"/>
-  
+
   <property name="lib" location="source/java/libs"/>
   <property name="src" location="source/java/src"/>
   <property name="build" location="build"/>
   <property name="fld" location="${build}/flds"/>
   <property name="temp" location="temp"/>
   <property name="dist"  location="dist"/>
-  
-  
+
+
   <scriptdef name="replace" language="javascript">
      <attribute name="haystack" />
      <attribute name="needle" />
@@ -43,7 +43,7 @@
   <target name="init">
     <!-- Create the time stamp -->
     <tstamp/>
-    
+
     <delete dir="${temp}"/>
     <delete dir="${dist}"/>
 
@@ -61,12 +61,12 @@
   <target name="compile" depends="init"
         description="compile the source " >
     <!-- Compile Java source -->
-    <javac srcdir="${src}" target="1.6" destdir="${temp}/classes" debug="true" debuglevel="lines,vars,source">
+    <javac srcdir="${src}" target="1.6" source="1.6" destdir="${temp}/classes" debug="true" debuglevel="lines,vars,source" includeantruntime="false">
       <classpath refid="classpath" />
     </javac>
 
     <!-- Put everything in ${build} into .jar file -->
-    <jar 
+    <jar
       jarfile="${dist}/extension/jars/mongodb-extension-${bundleversion}${build.number}.jar" basedir="${temp}/classes"  manifest="${src}/META-INF/MANIFEST.MF">
       <manifest>
         <attribute name="Bundle-Version" value="${bundleversion}${build.number}"/>
@@ -109,10 +109,5 @@
     </copy>
 
   </target>
-
-
-
-
-
 
 </project>

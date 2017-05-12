@@ -319,22 +319,33 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		}
 		// findAndModify
 		if(methodName.equals("findAndModify")) {
-			int len=checkArgLength("findAndModify",args,2,3);
+			int len=args == null ? 0 : args.length;
+			if (len != 2 && len != 3 && len != 7) {
+				throw exp.createApplicationException("the function findAndModify needs 2, 3 or 7 arguments, but you have defined only "+len);
+			}
 			DBObject obj=null;
 			if(len==2){
 				obj=coll.findAndModify(
 					toDBObject(args[0]),
 					toDBObject(args[1])
 				);
-			}
-			if(len==3){
+			} else if(len==3){
 				obj=coll.findAndModify(
 					toDBObject(args[0]),
 					toDBObject(args[1]),
 					toDBObject(args[2])
 				);
+			} else if(len==7){
+				obj=coll.findAndModify(
+					toDBObject(args[0]),
+					toDBObject(args[1]),
+					toDBObject(args[2]),
+					caster.toBooleanValue(args[3]),
+					toDBObject(args[4]),
+					caster.toBooleanValue(args[5]),
+					caster.toBooleanValue(args[6])
+				);
 			}
-			// TODO more options
 
 			return toCFML(obj);
 		}
@@ -355,8 +366,8 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		if(methodName.equals("insert")) {
 			checkArgLength("insert",args,1,1);
 			return toCFML(coll.insert(
-					toDBObjectArray(args[0]))
-				);
+				toDBObjectArray(args[0]))
+			);
 		}
 
 		// insertMany(required array documents, struct options) valid options keys are string "writeconcern", boolean "ordered"
@@ -386,13 +397,13 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			Map<String, Object> result=new LinkedHashMap<String, Object>();
 			BulkWriteResult bulkResult;
 			List<Map> writeErrors = new ArrayList<Map>();
-			
+
 			Array arr = caster.toArray(args[0]);
 			if(arr.size()==0) {
-				result.put("nInserted",0);	
-				result.put("writeErrors",writeErrors);	
+				result.put("nInserted",0);
+				result.put("writeErrors",writeErrors);
 				result.put("acknowledged",true);
-				return toCFML(result);	
+				return toCFML(result);
 			}
 
 			Iterator<Object> it = arr.valueIterator();
@@ -405,7 +416,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			} catch (BulkWriteException e) {
 				Map<String, Object> bulkErrorItem;
 				BulkWriteError bulkError;
-	
+
 				bulkResult = e.getWriteResult();
 				List<BulkWriteError> errors = e.getWriteErrors();
 
@@ -434,8 +445,8 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		// an operation is a struct with the following keys: { "operation":[insert|update|updateOne|remove|removeOne], "document":[(required if operation is insert) - a doc to insert], "query":[(optional) - the query to find for remove/update operations], "update":[(required for update/updateOne) - the update document] }
 		// i.e. dbCollection.bulkWrite([
 		//		 {"operation":"insert", "document":{"test":"insert"}}
-		//	 	,{"operation":"updateOne", "query":{"_id":"foo"}, "update":{"$set":{"updated":true}}}			
-		//	 	,{"operation":"removeOne", "query":{"_id":"goaway"}}			
+		//	 	,{"operation":"updateOne", "query":{"_id":"foo"}, "update":{"$set":{"updated":true}}}
+		//	 	,{"operation":"removeOne", "query":{"_id":"goaway"}}
 		// ],{"ordered":false})
 		if(methodName.equals("bulkWrite")) {
 			int len = checkArgLength("bulkWrite",args,1,2);
@@ -470,23 +481,23 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			Map<String, Object> result=new LinkedHashMap<String, Object>();
 			BulkWriteResult bulkResult;
 			List<Map> writeErrors = new ArrayList<Map>();
-			
+
 			Array arr = caster.toArray(args[0]);
 			if(arr.size()==0) {
-				result.put("nInserted",0);	
-				result.put("nMatched",0);	
-				result.put("nModified",0);	
-				result.put("nRemoved",0);	
-				result.put("writeErrors",writeErrors);	
+				result.put("nInserted",0);
+				result.put("nMatched",0);
+				result.put("nModified",0);
+				result.put("nRemoved",0);
+				result.put("writeErrors",writeErrors);
 				result.put("acknowledged",true);
-				return toCFML(result);	
+				return toCFML(result);
 			}
 
 			Iterator<Object> it = arr.valueIterator();
 			while(it.hasNext()){
 
 				DBObject operation = toDBObject(it.next());
-				
+
 				if (operation.get("operation")=="update") {
 					// do stuff to add update operation
 					bulk.find( toDBObject( operation.get("query") ) ).update( toDBObject( operation.get("update") ) );
@@ -510,7 +521,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			} catch (BulkWriteException e) {
 				Map<String, Object> bulkErrorItem;
 				BulkWriteError bulkError;
-	
+
 				bulkResult = e.getWriteResult();
 				List<BulkWriteError> errors = e.getWriteErrors();
 
