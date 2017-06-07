@@ -42,7 +42,7 @@
         
     ],
     "dependencies":{
-        "testbox":"2.2.0"
+        "testbox":"^2.5.0"
     },
     "devDependencies":{
         

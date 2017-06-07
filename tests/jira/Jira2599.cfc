@@ -212,6 +212,8 @@ component extends="org.lucee.cfml.test.LuceeTestCase"	{
 	public void function testBulkWrite() skip="isNotSupported" {
 		var coll = resetTestCollection();
 
+		coll.setWriteConcern("ACKNOWLEDGED");
+
 		// insert 3 docs
 		coll.bulkWrite([
 			 {"operation":"insert", "document":{"_id":6, "grp":3, "name":"Six"}}
@@ -231,6 +233,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase"	{
 		var bwResult = coll.bulkWrite([
 			 {"operation":"update", "query":{"grp":3}, "update":{"$set":{"updated":true}}}
 		]);
+
 		$assert.isEqual( 3, bwResult.nModified );
 		$assert.isEqual( 3, coll.count({"updated":true}) );
 
