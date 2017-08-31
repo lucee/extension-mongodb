@@ -21,15 +21,15 @@ public class MongoDBCacheDocument implements Serializable {
 		return dbObject.getString("_id");
 	}
 
-	public void setValue(Object value) throws IOException {
+	public void setValue(Object value) throws Exception {
 		dbObject.put("data",SerializerUtil.serialize(value));
 	}
 	
-	public Object getValue() throws ClassNotFoundException, IOException{
+	public Object getValue() throws Exception{
 		return getValue(dbObject);
 	}
 
-	public static Object getValue(BasicDBObject dbObject) throws ClassNotFoundException, IOException{
+	public static Object getValue(BasicDBObject dbObject) throws Exception{
 		return SerializerUtil.evaluate(dbObject.getString("data"));
 	}
 
