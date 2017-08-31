@@ -171,7 +171,7 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 		try {
 			return set(key, value);
 		}
-		catch (Throwable t) {}
+		catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
 		return value;
 	}
 
