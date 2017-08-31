@@ -1,6 +1,6 @@
 {
     "name":"MongoDB Extension",
-    "version":"3.2.2",
+    "version":"3.4.2",
     "author":"",
     "location":"",
     "directory":"",
@@ -42,7 +42,7 @@
         
     ],
     "dependencies":{
-        "testbox":"2.2.0"
+        "testbox":"^2.5.0"
     },
     "devDependencies":{
         

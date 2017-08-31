@@ -319,22 +319,33 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		}
 		// findAndModify
 		if(methodName.equals("findAndModify")) {
-			int len=checkArgLength("findAndModify",args,2,3);
+			int len=args == null ? 0 : args.length;
+			if (len != 2 && len != 3 && len != 7) {
+				throw exp.createApplicationException("the function findAndModify needs 2, 3 or 7 arguments, but you have defined only "+len);
+			}
 			DBObject obj=null;
 			if(len==2){
 				obj=coll.findAndModify(
 					toDBObject(args[0]),
 					toDBObject(args[1])
 				);
-			}
-			if(len==3){
+			} else if(len==3){
 				obj=coll.findAndModify(
 					toDBObject(args[0]),
 					toDBObject(args[1]),
 					toDBObject(args[2])
 				);
+			} else if(len==7){
+				obj=coll.findAndModify(
+					toDBObject(args[0]),
+					toDBObject(args[1]),
+					toDBObject(args[2]),
+					caster.toBooleanValue(args[3]),
+					toDBObject(args[4]),
+					caster.toBooleanValue(args[5]),
+					caster.toBooleanValue(args[6])
+				);
 			}
-			// TODO more options
 
 			return toCFML(obj);
 		}
