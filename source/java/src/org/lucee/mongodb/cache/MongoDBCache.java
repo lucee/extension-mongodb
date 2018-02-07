@@ -267,7 +267,7 @@ public class MongoDBCache implements Cache {
 		try {
 			doc.setValue(value);
 		}
-		catch (IOException e) {
+		catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 		doc.setKey(key.toLowerCase());
