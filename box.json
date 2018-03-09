@@ -1,6 +1,6 @@
 {
     "name":"MongoDB Extension",
-    "version":"3.4.2",
+    "version":"3.6.1",
     "author":"",
     "location":"",
     "directory":"",
@@ -20,7 +20,7 @@
     "changelog":"",
     "type":"",
     "keywords":[
-        
+
     ],
     "private":false,
     "engines":[
@@ -39,13 +39,13 @@
         }
     ],
     "contributors":[
-        
+
     ],
     "dependencies":{
         "testbox":"^2.5.0"
     },
     "devDependencies":{
-        
+
     },
     "installPaths":{
         "testbox":"testbox"
@@ -62,7 +62,7 @@
             }
         ],
         "labels":[
-            
+
         ],
         "reporter":"",
         "reporterResults":"",
@@ -74,11 +74,11 @@
             "recurse":true
         },
         "watchers":[
-            
+
         ],
         "notify":{
             "emails":[
-                
+
             ],
             "growl":"",
             "URL":""
