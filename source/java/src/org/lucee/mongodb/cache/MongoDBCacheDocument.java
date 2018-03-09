@@ -2,7 +2,7 @@ package org.lucee.mongodb.cache;
 
 import java.io.IOException;
 import java.io.Serializable;
-
+import java.util.Date;
 import org.lucee.mongodb.util.SerializerUtil;
 
 import com.mongodb.BasicDBObject;
@@ -101,6 +101,14 @@ public class MongoDBCacheDocument implements Serializable {
 		return dbObject.getLong("expires"); 		
 	}
 
+	public void setExpireAt(BasicDBObject value) {
+		dbObject.put("expireAt",value);
+	}
+
+	public Object getExpireAt(){
+		return dbObject.get("expireAt");	
+	}
+
 	public BasicDBObject getDbObject(){
 		return dbObject;
 	}
@@ -110,4 +118,5 @@ public class MongoDBCacheDocument implements Serializable {
 		hits++;
 		setHits(hits);		
 	}
+
 }
