@@ -101,7 +101,7 @@ public class MongoDBCacheDocument implements Serializable {
 		return dbObject.getLong("expires"); 		
 	}
 
-	public void setExpireAt(BasicDBObject value) {
+	public void setExpireAt(Date value) {
 		dbObject.put("expireAt",value);
 	}
 
