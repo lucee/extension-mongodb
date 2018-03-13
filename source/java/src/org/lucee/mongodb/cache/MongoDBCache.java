@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
+import java.util.Date;
 
 import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
@@ -21,6 +22,7 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+
 
 public class MongoDBCache implements Cache {
 
@@ -51,10 +53,6 @@ public class MongoDBCache implements Cache {
 
 			//create the indexes
 			createIndexes();
-
-			// start the cleaner schdule that remove entries by expires time and idle time
-			startCleaner();
-
 	}
 
 	public static void init(Config config, String[] cacheName, Struct[] arguments) {
@@ -70,7 +68,10 @@ public class MongoDBCache implements Cache {
 	}
 
 	private DBCollection getCollection(){
-		return MongoConnection.getInstance() .getDB(this.database).getCollection(this.collectionName);
+		return MongoConnection
+				.getInstance()
+				.getDB(this.database)
+				.getCollection(this.collectionName);
 	}
 
 	protected void createIndexes() {
@@ -80,11 +81,7 @@ public class MongoDBCache implements Cache {
 		coll.createIndex(new BasicDBObject("lifeSpan", 1));
 		//coll.createIndex(new BasicDBObject("timeIdle", 1)); Idle is not supported from version 2
 		coll.createIndex(new BasicDBObject("expires", 1));
-	}
-
-	protected void startCleaner() {
-		Timer timer = new Timer();
-		timer.schedule(new MongoDbCleanTask(this), 0, 100000);
+		coll.createIndex(new BasicDBObject("expireAt", 1), new BasicDBObject("expireAfterSeconds", 0));
 	}
 
 	@Override
@@ -255,6 +252,7 @@ public class MongoDBCache implements Cache {
 		long created = System.currentTimeMillis();
 		long idle = idleTime==null ?0:idleTime.longValue();
 		long life = lifeSpan==null ?0:lifeSpan.longValue();
+		Date expire = new Date(life+created);
 
 		BasicDBObject obj = new BasicDBObject();
 		MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
@@ -263,6 +261,7 @@ public class MongoDBCache implements Cache {
 		//doc.setLifeSpan(life);
 		doc.setHits(0);
 		doc.setExpires(life==0? 0 : life+created );
+		doc.setExpireAt(expire);
 
 		try {
 			doc.setValue(value);
