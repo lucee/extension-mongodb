@@ -261,7 +261,9 @@ public class MongoDBCache implements Cache {
 		//doc.setLifeSpan(life);
 		doc.setHits(0);
 		doc.setExpires(life==0? 0 : life+created );
-		doc.setExpireAt(expire);
+		if (life > 0) {
+			doc.setExpireAt(expire);
+		}
 
 		try {
 			doc.setValue(value);
