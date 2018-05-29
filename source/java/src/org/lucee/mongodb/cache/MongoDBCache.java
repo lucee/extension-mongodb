@@ -23,7 +23,6 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
-import org.lucee.mongodb.cache.MongoConnection;
 
 public class MongoDBCache implements Cache {
 
@@ -255,7 +254,6 @@ public class MongoDBCache implements Cache {
 		long life = lifeSpan==null ?0:lifeSpan.longValue();
 		Date expire = new Date(life+created);
 
-		BasicDBObject expireAt = new BasicDBObject("date", expire);
 		BasicDBObject obj = new BasicDBObject();
 		MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
 		doc.setCraetedOn(created);
@@ -263,7 +261,9 @@ public class MongoDBCache implements Cache {
 		//doc.setLifeSpan(life);
 		doc.setHits(0);
 		doc.setExpires(life==0? 0 : life+created );
-		doc.setExpireAt(expireAt);
+		if (life > 0) {
+			doc.setExpireAt(expire);
+		}
 
 		try {
 			doc.setValue(value);
