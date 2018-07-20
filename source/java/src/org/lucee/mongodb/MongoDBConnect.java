@@ -33,7 +33,7 @@ public class MongoDBConnect implements Function {
 		return call(pc, dbName, null, 0);
 	}
 	public static Object call(PageContext pc, String dbName, String host) throws PageException {
-		if(host.startsWith("mongodb://")) {
+		if(host.startsWith("mongodb://") || host.startsWith("mongodb+srv://")) {
 			return DBImpl.getInstanceByURI(dbName,host);
 		} else {
 			return call(pc, dbName, host, 0);

@@ -103,7 +103,7 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 
 	@Override
 	public Object remove(Key key) throws PageException {
-		if(!containsKey(key.getString()))
+		if(!db.collectionExists(key.getString()))
 			throw exp.createExpressionException("can't remove DBCollection with key ["+key+"], key doesn't exist");
 
 		DBCollection coll = db.getCollection(key.getString());
@@ -143,21 +143,19 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 
 	@Override
 	public Object get(String key) throws PageException {
-		DBCollection coll = db.getCollection(key);
-		if(coll.count()!=0 || containsKey(key)) return toCFML(coll);
+		if(db.collectionExists(key)) return toCFML(db.getCollection(key));
 		throw exp.createExpressionException("key ["+key+"] doesn't exist ");
 	}
 
 	@Override
 	public Object get(String key, Object defaultValue) {
-		DBCollection coll = db.getCollection(key);
-		if(coll.count()!=0 || containsKey(key)) return toCFML(coll);
+		if(db.collectionExists(key)) return toCFML(db.getCollection(key));
 		return defaultValue;
 	}
 
 	@Override
 	public Object set(String key, Object value) throws PageException {
-		if(containsKey(key)) {
+		if(db.collectionExists(key)) {
 			throw exp.createExpressionException("there is already a collection with name ["+key+"], you have to remove this collection first by calling the method \"drop()\" for example");
 			//DBCollection coll = db.getCollection(key);
 			//coll.drop();
@@ -182,11 +180,7 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 
 	@Override
 	public boolean containsKey(String key) {
-		Iterator<String> it = db.getCollectionNames().iterator();
-		while(it.hasNext()) {
-			if(key.equals(it.next())) return true;
-		}
-		return false;
+		return db.collectionExists(key);
 	}
 
 	@Override
