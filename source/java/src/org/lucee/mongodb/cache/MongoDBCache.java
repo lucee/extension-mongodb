@@ -22,13 +22,14 @@ import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-
+import com.mongodb.DBObject;
+import com.mongodb.MongoClientURI;
 
 public class MongoDBCache implements Cache {
 
-	private String database;
 	private String collectionName;
 	private Boolean persists = false;
+	private MongoClientURI clientUri;
 
 	//counters
 	private int hits = 0;
@@ -39,20 +40,19 @@ public class MongoDBCache implements Cache {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		caster = engine.getCastUtil();
 
+		this.clientUri = new MongoClientURI(caster.toString(arguments.get("uri")));
+		this.persists = caster.toBoolean(arguments.get("persist"));
+		this.collectionName = caster.toString(arguments.get("collection"));
+		
+		MongoDBClient.init(this.clientUri);
 
-			MongoConnection.init(arguments);
+		//clean the collection on startup if required
+		if (!persists) {
+			getCollection().drop();
+		}
 
-			this.persists = caster.toBoolean(arguments.get("persist"));
-			this.database = caster.toString(arguments.get("database"));
-			this.collectionName = caster.toString(arguments.get("collection"));
-
-			//clean the collection on startup if required
-			if (!persists) {
-				getCollection().drop();
-			}
-
-			//create the indexes
-			createIndexes();
+		//create the indexes
+		createIndexes();
 	}
 
 	public static void init(Config config, String[] cacheName, Struct[] arguments) {
@@ -68,9 +68,9 @@ public class MongoDBCache implements Cache {
 	}
 
 	private DBCollection getCollection(){
-		return MongoConnection
+		return MongoDBClient
 				.getInstance()
-				.getDB(this.database)
+				.getDB(this.clientUri.getDatabase())
 				.getCollection(this.collectionName);
 	}
 

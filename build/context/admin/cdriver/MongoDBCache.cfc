@@ -1,54 +1,29 @@
 <cfcomponent extends="Cache">
     <cfset fields=array(
-			field(	displayName="Server Host",
-					name="hosts",
-					defaultValue="localhost:27017",
+			field(	displayName="Mongo Connect String",
+					name="uri",
+					defaultValue="mongodb://localhost:27017",
 					required=true,
-					description="One or more MongoDB hosts (one per line). Use up to 7 hosts in a Replica Sets (MongoDb cluster environment)",
+					description="MongoDB connection URI. Include authentication and replica set info if needed.",
 					type="textarea"
 				),
 			field(	displayName="Database",
 					name="database",
-					defaultValue="",
+					defaultValue="luceecache",
 					required=true,
-					description="The name of the database on the MongoDB server to use",
+					description="The name of the database that will be used to store the data.",
 					type="text"
-				),
-
-			field(	displayName="Username",
-					name="username",
-					defaultValue="",
-					required=false,
-					description="",
-					type="text"
-				),
-			field(	displayName="Password",
-					name="password",
-					defaultValue="",
-					required=false,
-					description="",
-					type="text"
-				),
-
+				),										
 			field(	displayName="Collection",
 					name="collection",
 					defaultValue="",
 					required=true,
-					description="The name of the collection in the MongoDb database that will be used to store the data.",
+					description="The name of the collection in the database above that will be used to store the data.",
 					type="text"
-				),
-										
-			field(	displayName="Max connection per host",
-					name="connectionsPerHost",
-					defaultValue="10",
-					required=true,
-					description="The max number of connection allowed per host. The exceeding connection will be queued.",
-					type="text"
-				),
-
+				),										
 			field(	displayName="Persists over server restart",
 					name="persist",
-					values="true,false",	
+					values="true,false",
 					defaultValue=true,
 					required=true,
 					description="",
