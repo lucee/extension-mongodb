@@ -28,8 +28,8 @@ import com.mongodb.MongoClientURI;
 public class MongoDBCache implements Cache {
 
 	private String collectionName;
+	private String databaseName;
 	private Boolean persists = false;
-	private MongoClientURI clientUri;
 
 	//counters
 	private int hits = 0;
@@ -40,11 +40,11 @@ public class MongoDBCache implements Cache {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		caster = engine.getCastUtil();
 
-		this.clientUri = new MongoClientURI(caster.toString(arguments.get("uri")));
 		this.persists = caster.toBoolean(arguments.get("persist"));
 		this.collectionName = caster.toString(arguments.get("collection"));
+		this.databaseName = caster.toString(arguments.get("database"));
 		
-		MongoDBClient.init(this.clientUri);
+		MongoDBClient.init(new MongoClientURI(caster.toString(arguments.get("uri"))));
 
 		//clean the collection on startup if required
 		if (!persists) {
@@ -70,7 +70,7 @@ public class MongoDBCache implements Cache {
 	private DBCollection getCollection(){
 		return MongoDBClient
 				.getInstance()
-				.getDB(this.clientUri.getDatabase())
+				.getDB(this.databaseName)
 				.getCollection(this.collectionName);
 	}
 
