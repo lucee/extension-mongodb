@@ -19,11 +19,6 @@ public class MongoDBClient {
     private MongoDBClient(){}
 
     public static MongoClient init(MongoClientURI clientUri){
-
-        if(instance != null){
-            return instance;
-        }
-
         try {
             instance = new MongoClient(clientUri);
         } catch (MongoException e) {
