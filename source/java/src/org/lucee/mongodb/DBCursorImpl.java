@@ -246,10 +246,14 @@ public class DBCursorImpl extends DBCursorImplSupport {
 			checkArgLength("sort",args,1,1);
 			return toCFML(cursor.sort(toDBObject(args[0])));
 		}
+		if(methodName.equals("getBatchSize")) {
+			checkArgLength("getBatchSize",args,0,0);
+			return toCFML(cursor.getBatchSize());
+		}
 
 		String supportedFunctions=
 			"addOption,addSpecial,batchSize,copy,count,curr,explain,getCollection,getCursorId,getDecoderFactory,getKeysWanted,getOptions," +
-			"getQuery,getReadPreference,getServerAddress,getSizes,hasNext,itcount,iterator,length,next,numGetMores,numSeen,resetOptions," +
+			"getQuery,getReadPreference,getServerAddress,getSizes,getBatchSize,hasNext,itcount,iterator,length,next,numGetMores,numSeen,resetOptions," +
 			"size,snapshot,toArray,close,remove,hint,limit,setOptions,skip,sort";
 
 		throw exp.createExpressionException("function ["+methodName+"] is not supported, supported functions are ["+supportedFunctions+"]");
