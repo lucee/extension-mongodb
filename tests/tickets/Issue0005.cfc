@@ -18,71 +18,67 @@
  ---><cfscript>
 component extends="org.lucee.cfml.test.LuceeTestCase"	{
 
-	//public function setUp(){}
+	public function setUp(){
+		createCache();
+	}
+
+	public function tearDown(){
+		deleteCache();
+	}
 
 	public void function testDate(){
-		createCache();
 
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value=now(), timeSpan=createTimespan(0,0,0,1));
+		cachePut(id="cacheTestTemp", value=now(), timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp");
+		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isDate(value));
 		sleep(2000);
-		var value = cacheGet(id="cacheTestTemp");
+		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
 		assertTrue(isNull(value));
 
-		deleteCache();
 	}
 
 	public void function testNumeric(){
-		createCache();
 
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value=100, timeSpan=createTimespan(0,0,0,1));
+		cachePut(id="cacheTestTemp", value=100, timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp");
+		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isNumeric(value));
-		deleteCache();
 	}
 	
 	public void function testStruct(){
-		createCache();
 
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value={"foo":"bar"}, timeSpan=createTimespan(0,0,0,1));
+		cachePut(id="cacheTestTemp", value={"foo":"bar"}, timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp");
+		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isStruct(value) && structkeyexists(value,"foo"));
-		deleteCache();
 	}
 
 	public void function testArray(){
-		createCache();
 
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value=[1,2,3], timeSpan=createTimespan(0,0,0,1));
+		cachePut(id="cacheTestTemp", value=[1,2,3], timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp");
+		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isArray(value) && value.len()==3);
-		deleteCache();
 	}
 
 	public void function testString(){
-		createCache();
 
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value="FooBar", timeSpan=createTimespan(0,0,0,1));
+		cachePut(id="cacheTestTemp", value="FooBar", timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp");
+		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value));
 		$assert.isEqual("FooBar",value);
-		deleteCache();
 	}
 	
 	private string function createURL(string calledName){
@@ -94,10 +90,9 @@ component extends="org.lucee.cfml.test.LuceeTestCase"	{
 		admin 
 			action="updateCacheConnection"
 			type="web"
-			password="#request.webadminpassword#"
-			
+			password="#request.webadminpassword#"			
 			default="object"
-			name="mmongoDBTest" 
+			name="MongoDBTestCache" 
 			class="#request.cache.mongodb.class#" 
 			storage="true"
 			custom="#request.cache.mongodb.custom#";
@@ -108,8 +103,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase"	{
 			action="removeCacheConnection"
 			type="web"
 			password="#request.webadminpassword#"
-			name="mmongoDBTest";
-						
+			name="MongoDBTestCache";			
 	}
 	
 } 
