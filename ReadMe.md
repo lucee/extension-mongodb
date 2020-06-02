@@ -15,6 +15,8 @@ This extension provides Lucee Server with functions for managing connections to 
 <pre><code>db  = MongoDBConnect("test","localhost", 27017);
 or
 db  = MongoDBConnect("mongodb://localhost:27017/test");
+or
+db  = MongoDBConnect("myDb", "mongodb://user:pwd@myhost:27017/myDb");
 
 
 // use struct notation for collections
