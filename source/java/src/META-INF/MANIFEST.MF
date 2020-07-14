@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
 Export-Package: org.lucee.mongodb
 Bundle-ManifestVersion: 2
-Require-Bundle: org.mongodb.mongo-java-driver;bundle-version=3.6.3
+Require-Bundle: org.mongodb.mongo-java-driver;bundle-version=3.12.6
