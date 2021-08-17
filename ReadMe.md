@@ -64,7 +64,7 @@ Add your local extension provider in the Lucee server admin. After building this
 
 License/Copyright
 -----------------
-Copyright (c) 2015, Lucee Association Switzerland. All rights reserved.
+Copyright (c) 2021, Lucee Association Switzerland. All rights reserved.
 
 This library is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either  version 2.1 of the License, or (at your option) any later version.
 
