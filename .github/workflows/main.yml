@@ -52,7 +52,7 @@ jobs:
         repository: lucee/lucee
         path: lucee
     - name: Run Lucee Test Suite, labels="mongodb"
-      uses: zspitzer/lucee-script-engine-runner@main
+      uses: lucee/script-runner@main
       with:
         webroot: ${{ github.workspace }}/lucee/test
         execute: /bootstrap-tests.cfm
