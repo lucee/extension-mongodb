@@ -81,6 +81,7 @@ public class MongoDBCache implements Cache {
 		coll.createIndex(new BasicDBObject("lifeSpan", 1));
 		//coll.createIndex(new BasicDBObject("timeIdle", 1)); Idle is not supported from version 2
 		coll.createIndex(new BasicDBObject("expires", 1));
+		// this is a MongoDB native TTL index - documents will be automatically removed from collection when expireAt is reached
 		coll.createIndex(new BasicDBObject("expireAt", 1), new BasicDBObject("expireAfterSeconds", 0));
 	}
 
@@ -252,18 +253,23 @@ public class MongoDBCache implements Cache {
 		long created = System.currentTimeMillis();
 		long idle = idleTime==null ?0:idleTime.longValue();
 		long life = lifeSpan==null ?0:lifeSpan.longValue();
-		Date expire = new Date(life+created);
+		long expires = 0;
 
 		BasicDBObject obj = new BasicDBObject();
 		MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
 		doc.setCreatedOn(created);
 		doc.setTimeIdle(idle);
-		//doc.setLifeSpan(life);
+		doc.setLifeSpan(life);
 		doc.setHits(0);
-		doc.setExpires(life==0? 0 : life+created );
 		if (life > 0) {
-			doc.setExpireAt(expire);
+			expires = life + created;
 		}
+		else if (idle > 0) {
+			expires = idle + created;
+		}
+		doc.setExpires( expires );
+		if (expires != 0)
+			doc.setExpireAt( new Date( expires ) );
 
 		try {
 			doc.setValue(value);
