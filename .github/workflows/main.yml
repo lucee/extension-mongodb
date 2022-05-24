@@ -10,7 +10,7 @@ jobs:
 
     runs-on: ubuntu-latest   
     env:
-      luceeVersion: 6.0.0.95-SNAPSHOT
+      luceeVersion: light-6.0.0.149-SNAPSHOT
 
     steps:
     - name: Start MongoDB (docker)
@@ -35,7 +35,7 @@ jobs:
     - name: Cache Lucee files
       uses: actions/cache@v2
       with:
-        path: _actions/zspitzer/lucee-script-engine-runner/main/lucee-download-cache
+        path: _actions/lucee/script-runner/main/lucee-download-cache
         key: lucee-downloads-${{ env.luceeVersion }}
         restore-keys: |
           lucee-downloads
@@ -52,12 +52,13 @@ jobs:
         repository: lucee/lucee
         path: lucee
     - name: Run Lucee Test Suite, labels="mongodb"
-      uses: zspitzer/lucee-script-engine-runner@main
+      uses: lucee/script-runner@main
       with:
         webroot: ${{ github.workspace }}/lucee/test
         execute: /bootstrap-tests.cfm
         luceeVersion: ${{ env.luceeVersion }}
         extensionDir: ${{ github.workspace }}/dist/modern
+        extensions: 8D7FB0DF-08BB-1589-FE3975678F07DB17,37C61C0A-5D7E-4256-8572639BE0CF5838,FAD1E8CB-4F45-4184-86359145767C29DE # the compress, orm and esapi extensiona are required to run tests lucee with lucee-light      
       env:
         testLabels: mongodb
         MONGODB_SERVER: localhost
