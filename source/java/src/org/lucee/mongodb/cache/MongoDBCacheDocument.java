@@ -41,16 +41,13 @@ public class MongoDBCacheDocument implements Serializable {
 		return dbObject.getString("key");
 	}
 	
-	public String getCraetedOn(){
+	public String getCreatedOn(){
 		return dbObject.getString("createdOn");
 	}
 	
-	public void setCraetedOn(long created){
+	public void setCreatedOn(long created){
 		dbObject.put("createdOn",created);
 	}
-	
-
-	
 	
 	public void setLastAccessed(long value) {
 		dbObject.put("lastAccessed",value);
@@ -68,13 +65,13 @@ public class MongoDBCacheDocument implements Serializable {
 		return dbObject.getLong("lastUpdated");
 	}
 	
-	/*public void setLifeSpan(long value) {
+	public void setLifeSpan(long value) {
 		dbObject.put("lifeSpan",value);
 	}
 	
 	public long getLifeSpan(){
 		return dbObject.getLong("lifeSpan");
-	}*/
+	}
 	
 	public void setTimeIdle(long value) {
 		dbObject.put("timeIdle",value);
@@ -115,8 +112,15 @@ public class MongoDBCacheDocument implements Serializable {
 	
 	public void addHit(){
 		int hits = getHits();
+		long expires = getExpires();
+		long idle = getTimeIdle();
 		hits++;
-		setHits(hits);		
+		setHits(hits);
+		if (expires > 0 && idle > 0) {
+			expires = System.currentTimeMillis() + idle;
+			setExpires(expires);
+			setExpireAt( new Date(expires) );
+		}
 	}
 
 }
