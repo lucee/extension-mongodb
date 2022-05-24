@@ -16,7 +16,7 @@ public class MongoDBCacheEntry implements CacheEntry {
 	
 	@Override
 	public Date created() {
-		Date date = new Date(new Long(doc.getCraetedOn()));
+		Date date = new Date(new Long(doc.getCreatedOn()));
 		return date;
 	}
 

@@ -41,16 +41,13 @@ public class MongoDBCacheDocument implements Serializable {
 		return dbObject.getString("key");
 	}
 	
-	public String getCraetedOn(){
+	public String getCreatedOn(){
 		return dbObject.getString("createdOn");
 	}
 	
-	public void setCraetedOn(long created){
+	public void setCreatedOn(long created){
 		dbObject.put("createdOn",created);
 	}
-	
-
-	
 	
 	public void setLastAccessed(long value) {
 		dbObject.put("lastAccessed",value);

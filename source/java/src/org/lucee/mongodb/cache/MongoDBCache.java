@@ -256,7 +256,7 @@ public class MongoDBCache implements Cache {
 
 		BasicDBObject obj = new BasicDBObject();
 		MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
-		doc.setCraetedOn(created);
+		doc.setCreatedOn(created);
 		doc.setTimeIdle(idle);
 		//doc.setLifeSpan(life);
 		doc.setHits(0);
