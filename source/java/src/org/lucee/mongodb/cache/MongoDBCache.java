@@ -410,7 +410,6 @@ public class MongoDBCache implements Cache {
 
 		doc.setLastAccessed(now);
 		doc.setLastUpdated(now);
-		doc.addHit();
 		/*
 		   *  very atomic updated. Just the changed values are sent to db.
 		   *  If the doc do not exists is inserted.
