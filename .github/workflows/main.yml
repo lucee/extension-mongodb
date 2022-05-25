@@ -10,7 +10,7 @@ jobs:
 
     runs-on: ubuntu-latest   
     env:
-      luceeVersion: light-6.0.0.149-SNAPSHOT
+      luceeVersion: light-6.0.0.152-SNAPSHOT
 
     steps:
     - name: Start MongoDB (docker)
@@ -45,7 +45,7 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: mongodb-lex
-        path: dist/modern/*.lex
+        path: dist/*.lex
     - name: Checkout Lucee
       uses: actions/checkout@v2
       with:
@@ -57,7 +57,7 @@ jobs:
         webroot: ${{ github.workspace }}/lucee/test
         execute: /bootstrap-tests.cfm
         luceeVersion: ${{ env.luceeVersion }}
-        extensionDir: ${{ github.workspace }}/dist/modern
+        extensionDir: ${{ github.workspace }}/dist
         extensions: 8D7FB0DF-08BB-1589-FE3975678F07DB17,37C61C0A-5D7E-4256-8572639BE0CF5838,FAD1E8CB-4F45-4184-86359145767C29DE # the compress, orm and esapi extensiona are required to run tests lucee with lucee-light      
       env:
         testLabels: mongodb

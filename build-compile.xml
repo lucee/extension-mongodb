@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project default="clean" basedir="." name="mongodb-extension">
+<project default="clean" basedir="." name="mongodb-compile">
 	<description>
     Build MongoDB Extension - Compile
   </description>
-
 
   <buildnumber file="build.number"/>
   <property file="build.properties"/>
@@ -80,39 +79,33 @@
         description="compile the source " >
 
         <!-- copy the fld necessary -->
-    <loadfile property="content1" srcFile="${fld}/mongodb.fld" />
-    <replace haystack="${content1}" needle="{bundle-name}" repl="${bundlename}" property="content2"/>
-    <replace haystack="${content2}" needle="{bundle-version}" repl="${bundleversion}${build.number}" property="content3"/>
-    <echo message="${content3}" file="${dist}/extension/flds/mongodb.fld"/>
+      <loadfile property="content1" srcFile="${fld}/mongodb.fld" />
+      <replace haystack="${content1}" needle="{bundle-name}" repl="${bundlename}" property="content2"/>
+      <replace haystack="${content2}" needle="{bundle-version}" repl="${bundleversion}${build.number}" property="content3"/>
+      <echo message="${content3}" file="${dist}/extension/flds/mongodb.fld"/>
 
-    <!-- copy the context necessary -->
-    <copy todir="${dist}/extension/applications">
-      <fileset dir="${build}/applications">
-        <include name="**/*.*"/>
-      </fileset>
-    </copy>
+      <!-- copy the context necessary -->
+      <copy todir="${dist}/extension/applications">
+        <fileset dir="${build}/applications">
+          <include name="**/*.*"/>
+        </fileset>
+      </copy>
 
-    <!-- copy the functions necessary -->
-    <copy todir="${dist}/extension/functions">
-      <fileset dir="${build}/functions">
-        <include name="**/*.*"/>
-      </fileset>
-    </copy>
+      <!-- copy the functions necessary -->
+      <copy todir="${dist}/extension/functions">
+        <fileset dir="${build}/functions">
+          <include name="**/*.*"/>
+        </fileset>
+      </copy>
 
-    <!-- copy the jars necessary -->
-    <copy todir="${dist}/extension/jars">
-      <fileset dir="${lib}">
-        <include name="**/*.jar"/>
-        <exclude name="**/javax.servlet.jar"/>
-        <exclude name="**/lucee.jar"/>
-      </fileset>
-    </copy>
+      <!-- copy the jars necessary -->
+      <copy todir="${dist}/extension/jars">
+        <fileset dir="${lib}">
+          <include name="**/*.jar"/>
+          <exclude name="**/javax.servlet.jar"/>
+          <exclude name="**/lucee.jar"/>
+        </fileset>
+      </copy>
 
   </target>
-
-
-
-
-
-
 </project>

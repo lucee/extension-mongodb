@@ -1,21 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project default="all" basedir="." name="Lucee">
-  <import file="build-classic.xml"/>
   <import file="build-modern.xml"/>
-
-  <target name="info" description="outputs information about all posible building options">
-    <echo>You have the following building options, call:</echo>
-    <echo>   "ant classic" to build a classic extension (Lucee LT 5)</echo>
-    <echo>   "ant modern" to build a modern extension (Lucee GTE 5)</echo>
-    <echo>   "ant all" (default) to build classic and modern extension</echo>
-  </target>
   
-
-  <target name="modern" depends="buildModern,clean" description="build build modern extension"></target>
-  <target name="classic" depends="buildClassic,clean" description="builds classic extension"></target>
-  <target name="all" depends="buildClassic,buildModern,clean" description="builds ALL classic and modern extension"></target>
-
-
+  <target name="all" depends="buildModern,clean" description="builds modern extension"></target>
 
   <target name="clean" description="clean up" >
     <delete dir="${temp}"/>
