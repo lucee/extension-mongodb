@@ -8,7 +8,7 @@
 
   <target name="copyModern" depends="copyBase" description="copy source file to temp" >
     
-    <echo file="${dist}/extension/META-INF/MANIFEST.MF">Manifest-Version: 1.0
+  <echo file="${dist}/extension/META-INF/MANIFEST.MF">Manifest-Version: 1.0
 Built-Date: ${NOW}
 version: "${bundleversion}${build.number}"
 id: "${id}"
@@ -20,25 +20,20 @@ start-bundles: false
 trial: false
 </echo>
 
-
   </target>
-  
 
-  <target name="buildModern" depends="copyModern"
-        description="generate the distribution" >
- 
-    <!-- copy the logo -->
-    <copy todir="${dist}/extension/META-INF">
-      <fileset dir="${build}/images">
-        <include name="logo.png"/>
-      </fileset>
-    </copy>
+  <target name="buildModern" depends="copyModern" description="generate the distribution" > 
+      <!-- copy the logo -->
+      <copy todir="${dist}/extension/META-INF">
+        <fileset dir="${build}/images">
+          <include name="logo.png"/>
+        </fileset>
+      </copy>
 
-    <!-- Zip everything  -->
-     <zip destfile="${dist}/modern/mongodb-extension-${bundleversion}${build.number}.lex">
-        <zipfileset dir="${dist}/extension"/>
-    </zip>
-		
+      <!-- Zip everything  -->
+      <zip destfile="${dist}/mongodb-extension-${bundleversion}${build.number}.lex">
+          <zipfileset dir="${dist}/extension"/>
+      </zip>
   </target>
 
 </project>
