@@ -4,13 +4,13 @@
 name: Java CI
 
 on: [push, pull_request,workflow_dispatch]
- 
+
 jobs:
   build:
 
-    runs-on: ubuntu-latest   
+    runs-on: ubuntu-latest
     env:
-      luceeVersion: light-6.0.0.152-SNAPSHOT
+      luceeVersion: light-6.0.0.240-SNAPSHOT
 
     steps:
     - name: Start MongoDB (docker)
@@ -18,7 +18,7 @@ jobs:
       with:
         mongodb-version: 4.4
         mongodb-port: 27017
-    - uses: actions/checkout@v2   
+    - uses: actions/checkout@v2
     - name: Set up JDK 11
       uses: actions/setup-java@v2
       with:
@@ -58,7 +58,7 @@ jobs:
         execute: /bootstrap-tests.cfm
         luceeVersion: ${{ env.luceeVersion }}
         extensionDir: ${{ github.workspace }}/dist
-        extensions: 8D7FB0DF-08BB-1589-FE3975678F07DB17,37C61C0A-5D7E-4256-8572639BE0CF5838,FAD1E8CB-4F45-4184-86359145767C29DE # the compress, orm and esapi extensiona are required to run tests lucee with lucee-light      
+        extensions: 87FE44E5-179C-43A3-A87B3D38BEF4652E # eh-cache extension required
       env:
         testLabels: mongodb
         MONGODB_SERVER: localhost
