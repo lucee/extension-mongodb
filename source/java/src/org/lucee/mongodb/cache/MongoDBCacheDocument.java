@@ -35,6 +35,7 @@ public class MongoDBCacheDocument implements Serializable {
 
 	public void setKey(String value) {
 		dbObject.put("key",value);
+		dbObject.put("_id",value);
 	}
 	
 	public String getKey(){

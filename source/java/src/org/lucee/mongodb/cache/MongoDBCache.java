@@ -40,13 +40,13 @@ public class MongoDBCache implements Cache {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		caster = engine.getCastUtil();
 
-		this.persists = caster.toBoolean(arguments.get("persist"));
+		this.persists = caster.toBoolean(arguments.get("persist",false));
 		this.collectionName = caster.toString(arguments.get("collection"));
 		this.databaseName = caster.toString(arguments.get("database"));
 		
 		MongoDBClient.init(new MongoClientURI(caster.toString(arguments.get("uri"))));
 
-		//clean the collection on startup if required
+		// clean the collection on startup if required
 		if (!persists) {
 			getCollection().drop();
 		}
@@ -147,21 +147,18 @@ public class MongoDBCache implements Cache {
 	}
 
 	public CacheEntry getCacheEntry(String key, CacheEntry defaultValue) {
-		DBCursor cur = null;
+		DBObject cur = null;
 		DBCollection coll = getCollection();
 		BasicDBObject query = new BasicDBObject("key", key.toLowerCase());
 
-		// be sure to flush
-		flushInvalid(coll,query);
+		cur = coll.findOne(query);
 
-		cur = coll.find(query);
-
-		if (cur.count() > 0) {
+		if (cur != null) {
 			hits++;
-			MongoDBCacheDocument doc = new MongoDBCacheDocument((BasicDBObject) cur.next());
-			doc.addHit();
+			MongoDBCacheDocument doc = new MongoDBCacheDocument((BasicDBObject) cur);
 			//update the statistic and persist
-			save(doc,0);
+			doc.addHit();
+			save(doc,0);			
 			return new MongoDBCacheEntry(doc);
 		}
 		misses++;
@@ -388,17 +385,6 @@ public class MongoDBCache implements Cache {
 		return result;
 	}
 
-
-	protected void flushInvalid(DBCollection coll,BasicDBObject query) {
-		if(coll==null) coll=getCollection();
-		BasicDBObject q = (BasicDBObject) query.clone();
-
-		//execute the query
-		q.append("expires", new BasicDBObject("$lt", System.currentTimeMillis()).append("$gt", 0));
-		coll.remove(q);
-
-	}
-
 	private void doDelete(DBObject obj) {
 		DBCollection coll = getCollection();
 		coll.remove(obj);
@@ -410,13 +396,9 @@ public class MongoDBCache implements Cache {
 
 		doc.setLastAccessed(now);
 		doc.setLastUpdated(now);
-		/*
-		   *  very atomic updated. Just the changed values are sent to db.
-		   *  If the doc do not exists is inserted.
-		   */
-		BasicDBObject q = new BasicDBObject("key", doc.getKey());
-		coll.update(q, doc.getDbObject(), true, false);
-
+		// BasicDBObject q = new BasicDBObject("key", doc.getKey());
+		// coll.update(q, doc.getDbObject(), true, false);
+		coll.save(doc.getDbObject());
 	}
 
 	private DBCursor qAll() {
@@ -438,7 +420,7 @@ public class MongoDBCache implements Cache {
 	private DBCursor qAll_Values() {
 		DBCollection coll = getCollection();
 		DBCursor cur = null;
-		//get all entries but retrieve just the keys for better performance
+		//get all entries but retrieve just the data for better performance
 		cur = coll.find(new BasicDBObject(), new BasicDBObject("data", 1));
 		return cur;
 	}
@@ -447,7 +429,7 @@ public class MongoDBCache implements Cache {
 		DBCollection coll = getCollection();
 		DBCursor cur = null;
 
-		//get all entries but retrieve just the keys for better performance
+		//get all entries but retrieve just the keys and data for better performance
 		cur = coll.find(new BasicDBObject(), new BasicDBObject("key", 1).append("data", 1));
 		return cur;
 	}
