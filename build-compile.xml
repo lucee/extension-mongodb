@@ -91,13 +91,6 @@
         </fileset>
       </copy>
 
-      <!-- copy the context necessary -->
-      <copy todir="${dist}/extension/context">
-        <fileset dir="${build}/context">
-          <include name="**/*.*"/>
-        </fileset>
-      </copy>
-
       <!-- copy the functions necessary -->
       <copy todir="${dist}/extension/functions">
         <fileset dir="${build}/functions">
