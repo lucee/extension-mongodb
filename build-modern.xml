@@ -20,6 +20,12 @@ start-bundles: false
 trial: false
 </echo>
 
+    <loadfile property="c1" srcFile="${build}/context/admin/cdriver/${camelname}Cache.cfc" />
+    <replace haystack="${c1}" needle="{class}" repl="${class}" property="c2"/>
+    <replace haystack="${c2}" needle="{label}" repl="${labelCache}" property="c3"/>
+    <replace haystack="${c3}" needle="{desc}" repl="${descCache}" property="c4"/>
+    <echo message="${c4}" file="${dist}/extension/context/admin/cdriver/${camelname}Cache.cfc"/>
+
   </target>
 
   <target name="buildModern" depends="copyModern" description="generate the distribution" > 

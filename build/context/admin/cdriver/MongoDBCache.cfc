@@ -32,15 +32,15 @@
 		)>
 
 	<cffunction name="getClass" returntype="string">
-    	<cfreturn "org.lucee.mongodb.cache.MongoDBCache">
+    	<cfreturn "{class}">
     </cffunction>
     
 	<cffunction name="getLabel" returntype="string" output="no">
-    	<cfreturn "MongoDB (Beta)">
+    	<cfreturn "{label}">
     </cffunction>
 
 	<cffunction name="getDescription" returntype="string" output="no">
-    	<cfreturn "This is the MongoDB Cache implementation for Lucee. This allows you to cache objects, primitives and queries in a MongoDB server that can be used as a cache.">
+    	<cfreturn "{desc}">
     </cffunction>
 
 </cfcomponent>
