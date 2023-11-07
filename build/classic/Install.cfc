@@ -68,26 +68,6 @@
 			</cfloop>
 		</cfif>
 
-		<!--- applications --->
-		<cfset templates=[]>
-		<cfset local.dir=path&"applications/">
-		<cfset local.trg=expandPath('{web-root-directory}')>
-		<cfif directoryExists(dir)>
-			<cfdirectory action="list" directory="#dir#" name="local.qry" recurse="yes">
-			<cfloop query="#qry#">
-				<cfset local.fullpath="#qry.directory#/#qry.name#">
-				<cfif fileExists(fullpath) and qry.name NEQ ".DS_Store">
-
-					<cfset template=qry.name>
-					<cfset arrayAppend(templates,template)>
-
-					<cffile action="copy"
-						source="#fullpath#"
-						destination="#trg#/#template#">
-				</cfif>
-			</cfloop>
-		</cfif>
-
 		<!--- functions --->
 		<cfset local.dir=path&"functions/">
 		<cfset local.trg=expandPath('{lucee-server-directory}/library/function')>

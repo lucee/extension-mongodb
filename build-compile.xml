@@ -84,13 +84,6 @@
       <replace haystack="${content2}" needle="{bundle-version}" repl="${bundleversion}${build.number}" property="content3"/>
       <echo message="${content3}" file="${dist}/extension/flds/mongodb.fld"/>
 
-      <!-- copy the applications necessary -->
-      <copy todir="${dist}/extension/applications">
-        <fileset dir="${build}/applications">
-          <include name="**/*.*"/>
-        </fileset>
-      </copy>
-
       <!-- copy the functions necessary -->
       <copy todir="${dist}/extension/functions">
         <fileset dir="${build}/functions">
