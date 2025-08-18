@@ -52,6 +52,12 @@ jobs:
       matrix:
         lucee: ${{ fromJSON(vars.LUCEE_TEST_VERSIONS_PLUS) }}
     steps:
+      - name: Start MongoDB (docker)
+        uses: supercharge/mongodb-github-action@1.6.0
+        with:
+          mongodb-version: 4.4
+          mongodb-port: 27017
+
       - uses: actions/checkout@v4
 
       - name: Set up JDK 11
@@ -85,9 +91,14 @@ jobs:
           luceeVersion: ${{ matrix.lucee.version }}
           luceeVersionQuery: ${{ matrix.lucee.query }}
           extensionDir: ${{ github.workspace }}/target
+          extensions: 87FE44E5-179C-43A3-A87B3D38BEF4652E
         env:
           testLabels: mongodb
           testAdditional: ${{ github.workspace }}/tests
+          MONGODB_SERVER: localhost
+          MONGODB_PORT: 27017
+          MONGODB_DB: lucee
+          MONGODB_DATABASE: lucee
 
   deploy:
     runs-on: ubuntu-latest
