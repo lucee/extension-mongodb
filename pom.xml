@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>mongodb-extension</artifactId>
-    <version>3.12.13.9-SNAPSHOT</version>
+    <version>3.12.13.9</version>
     <packaging>pom</packaging>
     <name>MongoDB Extension</name>
 
