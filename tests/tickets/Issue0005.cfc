@@ -18,6 +18,9 @@
  ---><cfscript>
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 
+	variables.id=hash(server.lucee.version);
+
+
 	public function setUp(){
 		createCache();
 	}
@@ -27,56 +30,59 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	}
 
 	public void function testDate(){
-
+		var key = "testDate"&variables.id;
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value=now(), timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
+		cachePut(id=key, value=now(), timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
+		var value = cacheGet(id=key, cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isDate(value));
 		sleep(2000);
-		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
+		var value = cacheGet(id=key, cacheName:"MongoDBTestCache");
 		assertTrue(isNull(value));
 
 	}
 
 	public void function testNumeric(){
-
+		var key = "testNumeric"&variables.id;
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value=100, timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
+		cachePut(id=key, value=100, timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
-		assertTrue(!isNull(value) && isNumeric(value));
+		var value = cacheGet(id=key	, cacheName:"MongoDBTestCache");
+		assertTrue(!isNull(value) && isNumeric(value)); 
 	}
 	
 	public void function testStruct(){
 
+		var key = "testStruct"&variables.id;
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value={"foo":"bar"}, timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
+		cachePut(id=key, value={"foo":"bar"}, timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
+		var value = cacheGet(id=key, cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isStruct(value) && structkeyexists(value,"foo"));
 	}
 
 	public void function testArray(){
 
+		var key = "testArray"&variables.id;
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value=[1,2,3], timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
+		cachePut(id=key, value=[1,2,3], timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
+		var value = cacheGet(id=key, cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isArray(value) && value.len()==3);
 	}
 
 	public void function testString(){
 
+		var key = "testString"&variables.id;
 		// store a value to the cache that expires after a second
-		cachePut(id="cacheTestTemp", value="FooBar", timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
+		cachePut(id=key, value="FooBar", timeSpan=createTimespan(0,0,0,1), cacheName:"MongoDBTestCache");
 		
 		// after a couple of nanos schould still exists
-		var value = cacheGet(id="cacheTestTemp", cacheName:"MongoDBTestCache");
+		var value = cacheGet(id=key, cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value));
 		$assert.isEqual("FooBar",value);
 	}
