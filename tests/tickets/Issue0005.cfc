@@ -95,20 +95,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	private function createCache() {
 		include "../properties.cfm";
 	
-	// throws an error if already done before
-	try {
-		admin
-			action="updatePassword"
-			type="server"
-			oldPassword=""
-			newPassword="qwertz";
-	} catch (any e) {}
-
-		admin
-			action="updatePassword"
-			type="web"
-			oldPassword=""
-			newPassword="qwertz";
 
 		admin 
 			action="updateCacheConnection"

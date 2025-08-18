@@ -91,12 +91,11 @@ jobs:
           luceeVersion: ${{ matrix.lucee.version }}
           luceeVersionQuery: ${{ matrix.lucee.query }}
           extensionDir: ${{ github.workspace }}/target
-          # ADD BACK: Required extension
           extensions: 87FE44E5-179C-43A3-A87B3D38BEF4652E
         env:
           testLabels: mongodb
           testAdditional: ${{ github.workspace }}/tests
-          # ADD BACK: MongoDB connection details
+          LUCEE_ADMIN_PASSWORD: qwertz
           MONGODB_SERVER: localhost
           MONGODB_PORT: 27017
           MONGODB_DB: lucee
