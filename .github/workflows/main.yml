@@ -95,7 +95,6 @@ jobs:
         env:
           testLabels: mongodb
           testAdditional: ${{ github.workspace }}/tests
-          LUCEE_ADMIN_PASSWORD: qwertz
           MONGODB_SERVER: localhost
           MONGODB_PORT: 27017
           MONGODB_DB: lucee
