@@ -1,0 +1,245 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://www.w3.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.lucee</groupId>
+    <artifactId>mongodb-extension</artifactId>
+    <version>3.12.13.9-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>MongoDB Extension</name>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+        <id>E6634E1A-4CC5-4839-A83C67549ECA8D5B</id>
+        <bundlename>org.lucee.mongodb.extension</bundlename>
+        <class>org.lucee.mongodb.cache.MongoDBCache</class>
+        <luceeCoreVersion>5.0.0.150</luceeCoreVersion>
+        <releaseType>server</releaseType>
+        <label>MongoDB Datasource and Cache</label>
+        <release.url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</release.url>
+        <snapshot.url>https://oss.sonatype.org/content/repositories/snapshots/</snapshot.url>
+    </properties>
+
+    <scm>
+        <url>https://github.com/lucee/extension-mongodb</url>
+        <connection>scm:git:git://github.com/lucee/extension-mongodb.git</connection>
+        <developerConnection>scm:git:git@github.com:lucee/extension-mongodb.git</developerConnection>
+        <tag>${project.version}</tag>
+    </scm>
+
+    <licenses>
+        <license>
+            <name>The GNU Lesser General Public License, Version 2.1</name>
+            <url>http://www.gnu.org/licenses/lgpl-2.1.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>micstriit</id>
+            <name>Michael Offner</name>
+            <email>michael@lucee.org</email>
+            <organization>Lucee Association Switzerland</organization>
+            <organizationUrl>http://lucee.org</organizationUrl>
+            <roles>
+                <role>Project-Administrator</role>
+                <role>Developer</role>
+            </roles>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
+
+    <description>This is the MongoDB Cache implementation for Lucee. This allows you to cache objects, primitives and queries in a MongoDB server that can be used as a cache.</description>
+    <url>https://github.com/lucee/extension-mongodb</url>
+
+    <profiles>
+        <profile>
+            <id>release-sign-artifacts</id>
+            <activation>
+                <property>
+                    <name>performRelease</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <build>
+                <plugins>
+                    <!-- GPG sign -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.0.1</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>sign</goal>
+                                </goals>
+                                <configuration>
+                                    <files>
+                                        <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
+                                    </files>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                      <groupId>org.apache.maven.plugins</groupId>
+                      <artifactId>maven-release-plugin</artifactId>
+                      <version>3.0.0</version>
+                      <configuration>
+                        <autoVersionSubmodules>true</autoVersionSubmodules>
+                        <useReleaseProfile>false</useReleaseProfile>
+                        <releaseProfiles>release</releaseProfiles>
+                        <goals>deploy</goals>
+                      </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+    <build>
+        <plugins>
+            <!-- Antrun plugin to execute the Ant build -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>1.8</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <ant antfile="build.xml" target="clean">
+                                    <property name="bundleversion" value="${project.version}"/>
+                                    <property name="bundlename" value="${bundlename}"/>
+                                    <property name="class" value="${class}"/>
+                                    <property name="filename" value="${project.artifactId}"/>
+                                    <property name="id" value="${id}"/>
+                                    <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
+                                    <property name="releaseType" value="${releaseType}"/>
+                                    <property name="label" value="${label}"/>
+                                    <property name="description" value="${project.description}"/>
+                                    <property name="srcversion" value="${maven.compiler.source}"/>
+                                    <property name="trgversion" value="${maven.compiler.target}"/>
+                                
+</ant>
+                                <condition property="isSnapshot" value="true" else="false">
+                                    <matches string="${project.version}" pattern=".*-SNAPSHOT"/>
+                                </condition>
+                                <condition property="deploy.url" value="${snapshot.url}">
+                                    <istrue value="${isSnapshot}"/>
+                                </condition>
+                                <condition property="deploy.url" value="${release.url}">
+                                    <isfalse value="${isSnapshot}"/>
+                                </condition>
+                                <echo message="Deploying to URL: ${deploy.url}" />
+                            </target>
+                            <exportAntProperties>true</exportAntProperties>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Build Helper Plugin to attach additional artifacts -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>attach-artifacts</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>attach-artifact</goal>
+                        </goals>
+                        <configuration>
+                            <artifacts>
+                                <artifact>
+                                    <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
+                                    <type>lex</type>
+                                </artifact>
+                            </artifacts>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Clean plugin to remove extra folders -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>cleanup</id>
+                        <phase>post-package</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.build.directory}/antrun</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </fileset>
+                                <fileset>
+                                    <directory>${project.build.directory}/archive-tmp</directory>
+                                    <includes>
+                                        <include>**/*</include>
+                                    </includes>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Maven Deploy Plugin to deploy the .lex file -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <version>3.0.0-M1</version>
+                <executions>
+                    <execution>
+                        <id>default-deploy</id>
+                        <phase>deploy</phase>
+                        <goals>
+                            <goal>deploy-file</goal>
+                        </goals>
+                        <configuration>
+                            <file>${project.build.directory}/${project.artifactId}-${project.version}.lex</file>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>${project.version}</version>
+                            <repositoryId>ossrh</repositoryId>
+                            <url>${deploy.url}</url>
+                            <packaging>lex</packaging>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Nexus Staging Maven Plugin to automate the release process -->
+            <plugin>
+              <groupId>org.sonatype.central</groupId>
+              <artifactId>central-publishing-maven-plugin</artifactId>
+              <version>0.8.0</version>
+              <extensions>true</extensions>
+              <configuration>
+                <publishingServerId>ossrh</publishingServerId>
+                <autoPublish>true</autoPublish>
+              </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
