@@ -19,6 +19,8 @@
  ---><cfscript>
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 
+	include "../properties.cfm";
+
 	// skip closure
 	function isNotSupported() {
 		variables.mongodb=getCredentials();
