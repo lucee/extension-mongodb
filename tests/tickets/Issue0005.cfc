@@ -93,6 +93,8 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	}
 
 	private function createCache() {
+		include "properties.cfm";
+		
 		admin 
 			action="updateCacheConnection"
 			type="web"
