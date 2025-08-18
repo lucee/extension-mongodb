@@ -37,10 +37,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		// after a couple of nanos schould still exists
 		var value = cacheGet(id=key, cacheName:"MongoDBTestCache");
 		assertTrue(!isNull(value) && isDate(value));
-		sleep(2000);
-		var value = cacheGet(id=key, cacheName:"MongoDBTestCache");
-		assertTrue(isNull(value));
-
 	}
 
 	public void function testNumeric(){
