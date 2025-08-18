@@ -95,10 +95,21 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	private function createCache() {
 		include "../properties.cfm";
 		
+		admin
+			action="updatePassword"
+			type="server"
+			oldPassword=""
+			newPassword="qwertz";
+		admin
+			action="updatePassword"
+			type="web"
+			oldPassword=""
+			newPassword="qwertz";
+
 		admin 
 			action="updateCacheConnection"
 			type="web"
-			password="#request.webadminpassword#"			
+			password="qwertz"			
 			default="object"
 			name="MongoDBTestCache" 
 			class="#request.cache.mongodb.class#" 
@@ -110,7 +121,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		admin 
 			action="removeCacheConnection"
 			type="web"
-			password="#request.webadminpassword#"
+			password="qwertz"
 			name="MongoDBTestCache";			
 	}
 	
