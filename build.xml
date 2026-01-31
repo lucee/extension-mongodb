@@ -96,6 +96,8 @@
   <echo file="${dist}/extension/META-INF/MANIFEST.MF">Manifest-Version: 1.0
 Built-Date: ${NOW}
 version: "${bundleversion}"
+groupId: "${groupId}"
+artifactId: "${artifactId}"
 id: "${id}"
 name: "${label}"
 lucee-core-version: "${luceeCoreVersion}”

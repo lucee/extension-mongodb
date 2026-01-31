@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.lucee</groupId>
     <artifactId>mongodb-extension</artifactId>
-    <version>3.12.13.9</version>
+    <version>3.12.13.10</version>
     <packaging>pom</packaging>
     <name>MongoDB Extension</name>
 
@@ -121,6 +121,8 @@
                                     <property name="bundleversion" value="${project.version}"/>
                                     <property name="bundlename" value="${bundlename}"/>
                                     <property name="class" value="${class}"/>
+                                    <property name="groupId" value="${project.groupId}"/>
+                                    <property name="artifactId" value="${project.artifactId}"/>
                                     <property name="filename" value="${project.artifactId}"/>
                                     <property name="id" value="${id}"/>
                                     <property name="luceeCoreVersion" value="${luceeCoreVersion}"/>
