@@ -54,6 +54,7 @@ import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.InsertOneModel;
 import com.mongodb.client.model.RenameCollectionOptions;
+import com.mongodb.client.model.ReplaceOneModel;
 import com.mongodb.client.model.ReturnDocument;
 import com.mongodb.client.model.UpdateManyModel;
 import com.mongodb.client.model.UpdateOneModel;
@@ -289,10 +290,19 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			if (len != 2 && len != 3 && len != 7)
 				throw exp.createApplicationException("findAndModify needs 2, 3 or 7 arguments, but got " + len);
 			if (len == 2) {
-				return toCFML(coll.findOneAndUpdate(toDocument(args[0]), toDocument(args[1])));
+				Document q2 = toDocument(args[0]);
+				Document u2 = toDocument(args[1]);
+				if (isUpdateOperatorDoc(u2)) return toCFML(coll.findOneAndUpdate(q2, u2));
+				else return toCFML(coll.findOneAndReplace(q2, u2));
 			} else if (len == 3) {
-				return toCFML(coll.findOneAndUpdate(toDocument(args[0]), toDocument(args[1]),
-					new FindOneAndUpdateOptions().sort(toDocument(args[2]))));
+				Document q3 = toDocument(args[0]);
+				Document u3 = toDocument(args[1]);
+				Document sort3 = toDocument(args[2]);
+				if (isUpdateOperatorDoc(u3)) {
+					return toCFML(coll.findOneAndUpdate(q3, u3, new FindOneAndUpdateOptions().sort(sort3)));
+				} else {
+					return toCFML(coll.findOneAndReplace(q3, u3, new com.mongodb.client.model.FindOneAndReplaceOptions().sort(sort3)));
+				}
 			} else {
 				// (query, fields, sort, remove, update, returnNew, upsert)
 				Document query = toDocument(args[0]);
@@ -307,13 +317,20 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					if (sort != null) opts.sort(sort);
 					if (fields != null) opts.projection(fields);
 					return toCFML(coll.findOneAndDelete(query, opts));
-				} else {
+				} else if (isUpdateOperatorDoc(update)) {
 					FindOneAndUpdateOptions opts = new FindOneAndUpdateOptions()
 						.returnDocument(returnNew ? ReturnDocument.AFTER : ReturnDocument.BEFORE)
 						.upsert(upsert);
 					if (sort != null) opts.sort(sort);
 					if (fields != null) opts.projection(fields);
 					return toCFML(coll.findOneAndUpdate(query, update, opts));
+				} else {
+					com.mongodb.client.model.FindOneAndReplaceOptions opts = new com.mongodb.client.model.FindOneAndReplaceOptions()
+						.returnDocument(returnNew ? ReturnDocument.AFTER : ReturnDocument.BEFORE)
+						.upsert(upsert);
+					if (sort != null) opts.sort(sort);
+					if (fields != null) opts.projection(fields);
+					return toCFML(coll.findOneAndReplace(query, update, opts));
 				}
 			}
 		}
@@ -322,7 +339,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		if (methodName.equals("insert")) {
 			checkArgLength("insert", args, 1, 1);
 			Document[] docs = toDBObjectArray(args[0]);
-			Map<String, Object> result = new LinkedHashMap<String, Object>();
+			Document result = new Document();
 			if (docs.length == 1) {
 				coll.insertOne(docs[0]);
 				result.put("n", 1);
@@ -333,7 +350,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				result.put("n", docs.length);
 			}
 			result.put("acknowledged", true);
-			return toCFML(result);
+			return new WriteResultImpl(result);
 		}
 
 		// insertMany
@@ -425,9 +442,13 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				Document op = toDocument(it2.next());
 				String operation = (String) op.get("operation");
 				if ("update".equals(operation)) {
-					models.add(new UpdateManyModel<Document>(toDocument(op.get("query")), toDocument(op.get("update"))));
+					Document upd = toDocument(op.get("update"));
+					if (isUpdateOperatorDoc(upd)) models.add(new UpdateManyModel<Document>(toDocument(op.get("query")), upd));
+					else models.add(new ReplaceOneModel<Document>(toDocument(op.get("query")), upd));
 				} else if ("updateOne".equals(operation)) {
-					models.add(new UpdateOneModel<Document>(toDocument(op.get("query")), toDocument(op.get("update"))));
+					Document upd = toDocument(op.get("update"));
+					if (isUpdateOperatorDoc(upd)) models.add(new UpdateOneModel<Document>(toDocument(op.get("query")), upd));
+					else models.add(new ReplaceOneModel<Document>(toDocument(op.get("query")), upd));
 				} else if ("remove".equals(operation)) {
 					models.add(new DeleteManyModel<Document>(toDocument(op.get("query"))));
 				} else if ("removeOne".equals(operation)) {
@@ -472,10 +493,10 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		if (methodName.equals("remove")) {
 			checkArgLength("remove", args, 1, 1);
 			DeleteResult dr = coll.deleteMany(toDocument(args[0]));
-			Map<String, Object> result = new LinkedHashMap<String, Object>();
+			Document result = new Document();
 			result.put("acknowledged", dr.wasAcknowledged());
 			result.put("n", dr.wasAcknowledged() ? dr.getDeletedCount() : 0);
-			return toCFML(result);
+			return new WriteResultImpl(result);
 		}
 
 		// rename / renameCollection
@@ -496,7 +517,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		if (methodName.equals("save")) {
 			checkArgLength("save", args, 1, 1);
 			Document doc = toDocument(args[0]);
-			Map<String, Object> result = new LinkedHashMap<String, Object>();
+			Document result = new Document();
 			if (doc.containsKey("_id")) {
 				Document filter = new Document("_id", doc.get("_id"));
 				UpdateResult ur = coll.replaceOne(filter, doc, new com.mongodb.client.model.ReplaceOptions().upsert(true));
@@ -506,9 +527,10 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			} else {
 				InsertOneResult ir = coll.insertOne(doc);
 				result.put("acknowledged", ir.wasAcknowledged());
-				result.put("n", 1);
+				result.put("n", 1L);
+				result.put("updatedExisting", false);
 			}
-			return toCFML(result);
+			return new WriteResultImpl(result);
 		}
 
 		// setWriteConcern
@@ -539,18 +561,20 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			boolean upsert = len >= 3 && caster.toBooleanValue(args[2]);
 			boolean multi = len >= 4 && caster.toBooleanValue(args[3]);
 			UpdateResult ur;
-			com.mongodb.client.model.UpdateOptions opts = new com.mongodb.client.model.UpdateOptions().upsert(upsert);
-			if (multi) {
-				ur = coll.updateMany(filter, update, opts);
+			if (isUpdateOperatorDoc(update)) {
+				com.mongodb.client.model.UpdateOptions opts = new com.mongodb.client.model.UpdateOptions().upsert(upsert);
+				ur = multi ? coll.updateMany(filter, update, opts) : coll.updateOne(filter, update, opts);
 			} else {
-				ur = coll.updateOne(filter, update, opts);
+				// Replacement document: driver 5.x requires replaceOne instead of updateOne
+				com.mongodb.client.model.ReplaceOptions opts = new com.mongodb.client.model.ReplaceOptions().upsert(upsert);
+				ur = coll.replaceOne(filter, update, opts);
 			}
-			Map<String, Object> result = new LinkedHashMap<String, Object>();
+			Document result = new Document();
 			result.put("acknowledged", ur.wasAcknowledged());
 			result.put("n", ur.wasAcknowledged() ? ur.getMatchedCount() : 0);
 			result.put("nModified", ur.wasAcknowledged() ? ur.getModifiedCount() : 0);
 			result.put("updatedExisting", ur.wasAcknowledged() && ur.getMatchedCount() > 0);
-			return toCFML(result);
+			return new WriteResultImpl(result);
 		}
 
 		String functionNames = "aggregate,count,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes," +
@@ -573,6 +597,12 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			table.appendRow(0, __toDumpData(toCFML(doc), pageContext, maxlevel, dp));
 		}
 		return table;
+	}
+
+	private static boolean isUpdateOperatorDoc(Document doc) {
+		if (doc == null || doc.isEmpty()) return false;
+		String firstKey = doc.keySet().iterator().next();
+		return firstKey.startsWith("$");
 	}
 
 	private Document getCollStats() {

@@ -30,7 +30,25 @@ public class MongoDBCacheDocument implements Serializable {
 	}
 
 	public static Object getValue(Document dbObject) throws Exception {
-		return SerializerUtil.evaluate((String) dbObject.get("data"));
+		String data = (String) dbObject.get("data");
+		if (data == null) return null;
+		try {
+			return SerializerUtil.evaluate(data);
+		} catch (Exception e) {
+			// Deserialization can fail when cached data contains objects whose class is no
+			// longer resolvable in the current OSGi context (e.g. after an extension upgrade).
+			// Returning null is equivalent to a cache miss — callers recreate the value.
+			if (isClassLoadingError(e)) return null;
+			throw e;
+		}
+	}
+
+	private static boolean isClassLoadingError(Throwable t) {
+		if (t == null) return false;
+		if (t instanceof ClassNotFoundException || t instanceof NoClassDefFoundError) return true;
+		// Lucee wraps ClassNotFoundException as a NativeException whose message is the class name
+		if (t.getClass().getName().equals("lucee.runtime.exp.NativeException")) return true;
+		return isClassLoadingError(t.getCause());
 	}
 
 	public void setKey(String value) {

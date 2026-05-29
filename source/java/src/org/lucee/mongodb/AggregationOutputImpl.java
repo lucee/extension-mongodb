@@ -24,19 +24,41 @@ import org.bson.Document;
 import org.lucee.mongodb.support.ObjectSupport;
 
 import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoCursor;
 
 public class AggregationOutputImpl extends ObjectSupport {
 
 	private AggregateIterable<Document> iterable;
+	private MongoCursor<Document> cursor;
 
 	public AggregationOutputImpl(AggregateIterable<Document> iterable) {
 		this.iterable = iterable;
 	}
 
+	private MongoCursor<Document> getCursor() {
+		if (cursor == null) cursor = iterable.iterator();
+		return cursor;
+	}
+
+	public boolean hasNext() {
+		return getCursor().hasNext();
+	}
+
+	public Object next() {
+		return toCFML(getCursor().next());
+	}
+
+	public void close() {
+		if (cursor != null) {
+			cursor.close();
+			cursor = null;
+		}
+	}
+
 	public Object results() {
 		ArrayList<Object> rtn = new ArrayList<Object>();
 		for (Document doc : iterable) {
-			rtn.add(new DBObjectImpl(doc));
+			rtn.add(toCFML(doc));
 		}
 		return toCFML(rtn);
 	}
