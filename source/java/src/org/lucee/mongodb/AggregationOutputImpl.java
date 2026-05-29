@@ -19,35 +19,29 @@
 package org.lucee.mongodb;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
+import org.bson.Document;
 import org.lucee.mongodb.support.ObjectSupport;
 
-import com.mongodb.AggregationOutput;
-import com.mongodb.DBObject;
+import com.mongodb.client.AggregateIterable;
 
 public class AggregationOutputImpl extends ObjectSupport {
 
-	private AggregationOutput ao;
+	private AggregateIterable<Document> iterable;
 
-	public AggregationOutputImpl(AggregationOutput ao) {
-		this.ao=ao;
+	public AggregationOutputImpl(AggregateIterable<Document> iterable) {
+		this.iterable = iterable;
 	}
 
-    public Object results() {
-        Iterator<DBObject> it = ao.results().iterator();
-        ArrayList<Object> rtn=new ArrayList<Object>();
-        while(it.hasNext()){
-            rtn.add(new DBObjectImpl(it.next()));
-        }
-        return toCFML(rtn);
-    }
-
-	public String toString() {
-		return ao.toString();
+	public Object results() {
+		ArrayList<Object> rtn = new ArrayList<Object>();
+		for (Document doc : iterable) {
+			rtn.add(new DBObjectImpl(doc));
+		}
+		return toCFML(rtn);
 	}
 
-	public AggregationOutput getAggregationOutput(){
-		return ao;
+	public AggregateIterable<Document> getIterable() {
+		return iterable;
 	}
 }

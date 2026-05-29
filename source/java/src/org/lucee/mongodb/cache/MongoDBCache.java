@@ -2,9 +2,9 @@ package org.lucee.mongodb.cache;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import lucee.commons.io.cache.Cache;
 import lucee.commons.io.cache.CacheEntry;
@@ -18,12 +18,11 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Struct;
 import lucee.runtime.util.Cast;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClientURI;
+import org.bson.Document;
+
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.model.IndexOptions;
 
 public class MongoDBCache implements Cache {
 
@@ -31,7 +30,6 @@ public class MongoDBCache implements Cache {
 	private String databaseName;
 	private Boolean persists = false;
 
-	//counters
 	private int hits = 0;
 	private int misses = 0;
 	private Cast caster;
@@ -40,23 +38,20 @@ public class MongoDBCache implements Cache {
 		CFMLEngine engine = CFMLEngineFactory.getInstance();
 		caster = engine.getCastUtil();
 
-		this.persists = caster.toBoolean(arguments.get("persist",false));
+		this.persists = caster.toBoolean(arguments.get("persist", false));
 		this.collectionName = caster.toString(arguments.get("collection"));
 		this.databaseName = caster.toString(arguments.get("database"));
-		
-		MongoDBClient.init(new MongoClientURI(caster.toString(arguments.get("uri"))));
 
-		// clean the collection on startup if required
+		MongoDBClient.init(caster.toString(arguments.get("uri")));
+
 		if (!persists) {
 			getCollection().drop();
 		}
-
-		//create the indexes
 		createIndexes();
 	}
 
 	public static void init(Config config, String[] cacheName, Struct[] arguments) {
-		//Not used at the moment
+		// Not used
 	}
 
 	public void init(Config config, String cacheName, Struct arguments) {
@@ -67,57 +62,43 @@ public class MongoDBCache implements Cache {
 		}
 	}
 
-	private DBCollection getCollection(){
-		return MongoDBClient
-				.getInstance()
-				.getDB(this.databaseName)
-				.getCollection(this.collectionName);
+	private MongoCollection<Document> getCollection() {
+		return MongoDBClient.getInstance()
+			.getDatabase(this.databaseName)
+			.getCollection(this.collectionName);
 	}
 
 	protected void createIndexes() {
-		DBCollection coll = getCollection();
-		// create the indexes
-		coll.createIndex(new BasicDBObject("key", 1));
-		coll.createIndex(new BasicDBObject("lifeSpan", 1));
-		//coll.createIndex(new BasicDBObject("timeIdle", 1)); Idle is not supported from version 2
-		coll.createIndex(new BasicDBObject("expires", 1));
-		// this is a MongoDB native TTL index - documents will be automatically removed from collection when expireAt is reached
-		coll.createIndex(new BasicDBObject("expireAt", 1), new BasicDBObject("expireAfterSeconds", 0));
+		MongoCollection<Document> coll = getCollection();
+		coll.createIndex(new Document("key", 1));
+		coll.createIndex(new Document("lifeSpan", 1));
+		coll.createIndex(new Document("expires", 1));
+		coll.createIndex(new Document("expireAt", 1), new IndexOptions().expireAfter(0L, TimeUnit.SECONDS));
 	}
 
 	@Override
 	public boolean contains(String key) {
-		DBCollection coll = getCollection();
-		BasicDBObject query = new BasicDBObject();
-		query.put("key", key.toLowerCase());
-		DBCursor cur = coll.find(query);
-		return cur.count() > 0;
+		return getCollection().countDocuments(new Document("key", key.toLowerCase())) > 0;
 	}
 
 	@Override
 	public List<CacheEntry> entries() {
 		List<CacheEntry> result = new ArrayList<CacheEntry>();
-		DBCursor cur = qAll();
-
-		while (cur.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cur.next();
-			MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
-			result.add(new MongoDBCacheEntry(doc));
+		try (MongoCursor<Document> cur = getCollection().find().iterator()) {
+			while (cur.hasNext()) {
+				result.add(new MongoDBCacheEntry(new MongoDBCacheDocument(cur.next())));
+			}
 		}
-
 		return result;
 	}
 
 	@Override
 	public List<CacheEntry> entries(CacheKeyFilter filter) {
 		List<CacheEntry> result = new ArrayList<CacheEntry>();
-		DBCursor cur = qAll();
-
-		while (cur.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cur.next();
-			MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
-			if (filter.accept(doc.getKey())) {
-				result.add(new MongoDBCacheEntry(doc));
+		try (MongoCursor<Document> cur = getCollection().find().iterator()) {
+			while (cur.hasNext()) {
+				MongoDBCacheDocument doc = new MongoDBCacheDocument(cur.next());
+				if (filter.accept(doc.getKey())) result.add(new MongoDBCacheEntry(doc));
 			}
 		}
 		return result;
@@ -126,14 +107,10 @@ public class MongoDBCache implements Cache {
 	@Override
 	public List<CacheEntry> entries(CacheEntryFilter filter) {
 		List<CacheEntry> result = new ArrayList<CacheEntry>();
-		DBCursor cur = qAll();
-
-		while (cur.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cur.next();
-			MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
-			MongoDBCacheEntry entry = new MongoDBCacheEntry(doc);
-			if (filter.accept(entry)) {
-				result.add(entry);
+		try (MongoCursor<Document> cur = getCollection().find().iterator()) {
+			while (cur.hasNext()) {
+				MongoDBCacheEntry entry = new MongoDBCacheEntry(new MongoDBCacheDocument(cur.next()));
+				if (filter.accept(entry)) result.add(entry);
 			}
 		}
 		return result;
@@ -142,23 +119,17 @@ public class MongoDBCache implements Cache {
 	@Override
 	public CacheEntry getCacheEntry(String key) throws CacheException {
 		CacheEntry ce = getCacheEntry(key, null);
-		if(ce!=null) return ce;
-		throw new CacheException("The document with key [" + key + "] has not been found int this cache.");
+		if (ce != null) return ce;
+		throw new CacheException("The document with key [" + key + "] has not been found in this cache.");
 	}
 
 	public CacheEntry getCacheEntry(String key, CacheEntry defaultValue) {
-		DBObject cur = null;
-		DBCollection coll = getCollection();
-		BasicDBObject query = new BasicDBObject("key", key.toLowerCase());
-
-		cur = coll.findOne(query);
-
-		if (cur != null) {
+		Document found = getCollection().find(new Document("key", key.toLowerCase())).first();
+		if (found != null) {
 			hits++;
-			MongoDBCacheDocument doc = new MongoDBCacheDocument((BasicDBObject) cur);
-			//update the statistic and persist
+			MongoDBCacheDocument doc = new MongoDBCacheDocument(found);
 			doc.addHit();
-			save(doc,0);			
+			save(doc, 0);
 			return new MongoDBCacheEntry(doc);
 		}
 		misses++;
@@ -167,13 +138,9 @@ public class MongoDBCache implements Cache {
 
 	@Override
 	public Struct getCustomInfo() {
-		Struct info=CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
-
-		long value = hitCount();
-		if(value>=0)info.setEL("hit_count", new Double(value));
-		value = missCount();
-		if(value>=0)info.setEL("miss_count", new Double(value));
-
+		Struct info = CFMLEngineFactory.getInstance().getCreationUtil().createStruct();
+		info.setEL("hit_count", new Double(hitCount()));
+		info.setEL("miss_count", new Double(missCount()));
 		return info;
 	}
 
@@ -184,9 +151,8 @@ public class MongoDBCache implements Cache {
 
 	@Override
 	public Object getValue(String key, Object defaultValue) {
-		CacheEntry ce = getCacheEntry(key,null);
-		if(ce!=null) return ce.getValue();
-		return defaultValue;
+		CacheEntry ce = getCacheEntry(key, null);
+		return ce != null ? ce.getValue() : defaultValue;
 	}
 
 	@Override
@@ -197,11 +163,10 @@ public class MongoDBCache implements Cache {
 	@Override
 	public List<String> keys() {
 		List<String> result = new ArrayList<String>();
-		DBCursor cur = qAll_Keys();
-
-		if (cur.count() > 0) {
+		try (MongoCursor<Document> cur = getCollection().find().projection(new Document("key", 1)).iterator()) {
 			while (cur.hasNext()) {
-				result.add(caster.toString(cur.next().get("key"),""));
+				Object k = cur.next().get("key");
+				if (k != null) result.add(k.toString());
 			}
 		}
 		return result;
@@ -210,14 +175,10 @@ public class MongoDBCache implements Cache {
 	@Override
 	public List<String> keys(CacheKeyFilter filter) {
 		List<String> result = new ArrayList<String>();
-		DBCursor cur = qAll_Keys();
-
-		if (cur.count() > 0) {
+		try (MongoCursor<Document> cur = getCollection().find().projection(new Document("key", 1)).iterator()) {
 			while (cur.hasNext()) {
-				String key = new MongoDBCacheDocument((BasicDBObject) cur.next()).getKey();
-				if (filter.accept(key)) {
-					result.add(key);
-				}
+				Object k = cur.next().get("key");
+				if (k != null && filter.accept(k.toString())) result.add(k.toString());
 			}
 		}
 		return result;
@@ -226,14 +187,10 @@ public class MongoDBCache implements Cache {
 	@Override
 	public List keys(CacheEntryFilter filter) {
 		List<String> result = new ArrayList<String>();
-		DBCursor cur = qAll();
-
-		if (cur.count() > 0) {
+		try (MongoCursor<Document> cur = getCollection().find().iterator()) {
 			while (cur.hasNext()) {
-				MongoDBCacheEntry entry = new MongoDBCacheEntry(new MongoDBCacheDocument((BasicDBObject) cur.next()));
-				if (filter.accept(entry)) {
-					result.add(entry.getKey());
-				}
+				MongoDBCacheEntry entry = new MongoDBCacheEntry(new MongoDBCacheDocument(cur.next()));
+				if (filter.accept(entry)) result.add(entry.getKey());
 			}
 		}
 		return result;
@@ -246,47 +203,37 @@ public class MongoDBCache implements Cache {
 
 	@Override
 	public void put(String key, Object value, Long idleTime, Long lifeSpan) {
-
 		long created = System.currentTimeMillis();
-		long idle = idleTime==null ?0:idleTime.longValue();
-		long life = lifeSpan==null ?0:lifeSpan.longValue();
+		long idle = idleTime == null ? 0 : idleTime.longValue();
+		long life = lifeSpan == null ? 0 : lifeSpan.longValue();
 		long expires = 0;
 
-		BasicDBObject obj = new BasicDBObject();
+		Document obj = new Document();
 		MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
 		doc.setCreatedOn(created);
 		doc.setTimeIdle(idle);
 		doc.setLifeSpan(life);
 		doc.setHits(0);
-		if (life > 0) {
-			expires = life + created;
-		}
-		else if (idle > 0) {
-			expires = idle + created;
-		}
-		doc.setExpires( expires );
-		if (expires != 0)
-			doc.setExpireAt( new Date( expires ) );
+		if (life > 0) expires = life + created;
+		else if (idle > 0) expires = idle + created;
+		doc.setExpires(expires);
+		if (expires != 0) doc.setExpireAt(new Date(expires));
 
 		try {
 			doc.setValue(value);
-		}
-		catch (Exception e) {
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 		doc.setKey(key.toLowerCase());
-		save(doc,created);
-
+		save(doc, created);
 	}
 
 	@Override
 	public boolean remove(String key) {
-		DBCollection coll = getCollection();
-		BasicDBObject query = new BasicDBObject();
-		query.put("key", key.toLowerCase());
-		DBCursor cur = coll.find(query);
-		if (cur.hasNext()) {
-			doDelete(cur.next());
+		Document query = new Document("key", key.toLowerCase());
+		Document found = getCollection().find(query).first();
+		if (found != null) {
+			getCollection().deleteOne(new Document("_id", found.get("_id")));
 			return true;
 		}
 		return false;
@@ -294,48 +241,43 @@ public class MongoDBCache implements Cache {
 
 	@Override
 	public int remove(CacheKeyFilter filter) {
-		DBCursor cur = qAll_Keys();
 		int counter = 0;
-
-		while (cur.hasNext()) {
-			DBObject obj = cur.next();
-			String key = (String) obj.get("key");
-			if (filter.accept(key)) {
-				doDelete((BasicDBObject) obj);
-				counter++;
+		try (MongoCursor<Document> cur = getCollection().find().projection(new Document("key", 1)).iterator()) {
+			while (cur.hasNext()) {
+				Document obj = cur.next();
+				String k = (String) obj.get("key");
+				if (filter.accept(k)) {
+					getCollection().deleteOne(new Document("_id", obj.get("_id")));
+					counter++;
+				}
 			}
 		}
-
 		return counter;
 	}
 
 	@Override
 	public int remove(CacheEntryFilter filter) {
-		DBCursor cur = qAll();
 		int counter = 0;
-
-		while (cur.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cur.next();
-			MongoDBCacheEntry entry = new MongoDBCacheEntry(new MongoDBCacheDocument(obj));
-			if (filter.accept(entry)) {
-				doDelete(obj);
-				counter++;
+		try (MongoCursor<Document> cur = getCollection().find().iterator()) {
+			while (cur.hasNext()) {
+				Document obj = cur.next();
+				MongoDBCacheEntry entry = new MongoDBCacheEntry(new MongoDBCacheDocument(obj));
+				if (filter.accept(entry)) {
+					getCollection().deleteOne(new Document("_id", obj.get("_id")));
+					counter++;
+				}
 			}
 		}
-
 		return counter;
 	}
 
 	@Override
 	public List<Object> values() {
-		DBCursor cur = qAll_Values();
 		List<Object> result = new ArrayList<Object>();
-
-		while (cur.hasNext()) {
-			try {
-				result.add(MongoDBCacheDocument.getValue((BasicDBObject) cur.next()));
-			} catch (Exception e) {
-				throw new RuntimeException(e);
+		try (MongoCursor<Document> cur = getCollection().find().projection(new Document("data", 1)).iterator()) {
+			while (cur.hasNext()) {
+				try { result.add(MongoDBCacheDocument.getValue(cur.next())); }
+				catch (Exception e) { throw new RuntimeException(e); }
 			}
 		}
 		return result;
@@ -343,95 +285,41 @@ public class MongoDBCache implements Cache {
 
 	@Override
 	public List<Object> values(CacheKeyFilter filter) {
-		DBCursor cur = qAll_Keys_Values();
 		List<Object> result = new ArrayList<Object>();
-
-		while (cur.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cur.next();
-			MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
-
-			if (filter.accept(doc.getKey())) {
-				try {
-					result.add(MongoDBCacheDocument.getValue(obj));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
+		try (MongoCursor<Document> cur = getCollection().find().projection(new Document("key", 1).append("data", 1)).iterator()) {
+			while (cur.hasNext()) {
+				Document obj = cur.next();
+				MongoDBCacheDocument doc = new MongoDBCacheDocument(obj);
+				if (filter.accept(doc.getKey())) {
+					try { result.add(MongoDBCacheDocument.getValue(obj)); }
+					catch (Exception e) { throw new RuntimeException(e); }
 				}
 			}
-
 		}
-
 		return result;
 	}
 
 	@Override
 	public List<Object> values(CacheEntryFilter filter) {
-		DBCursor cur = qAll_Keys_Values();
 		List<Object> result = new ArrayList<Object>();
-
-		while (cur.hasNext()) {
-			BasicDBObject obj = (BasicDBObject) cur.next();
-			MongoDBCacheEntry entry = new MongoDBCacheEntry(new MongoDBCacheDocument(obj));
-
-			if (filter.accept(entry)) {
-				try {
-					result.add(MongoDBCacheDocument.getValue(obj));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
+		try (MongoCursor<Document> cur = getCollection().find().projection(new Document("key", 1).append("data", 1)).iterator()) {
+			while (cur.hasNext()) {
+				Document obj = cur.next();
+				MongoDBCacheEntry entry = new MongoDBCacheEntry(new MongoDBCacheDocument(obj));
+				if (filter.accept(entry)) {
+					try { result.add(MongoDBCacheDocument.getValue(obj)); }
+					catch (Exception e) { throw new RuntimeException(e); }
 				}
 			}
-
 		}
-
 		return result;
 	}
 
-	private void doDelete(DBObject obj) {
-		DBCollection coll = getCollection();
-		coll.remove(obj);
-	}
-
 	private void save(MongoDBCacheDocument doc, long now) {
-		DBCollection coll = getCollection();
-		if(now<=0)now = System.currentTimeMillis();
-
+		if (now <= 0) now = System.currentTimeMillis();
 		doc.setLastAccessed(now);
 		doc.setLastUpdated(now);
-		// BasicDBObject q = new BasicDBObject("key", doc.getKey());
-		// coll.update(q, doc.getDbObject(), true, false);
-		coll.save(doc.getDbObject());
+		Document filter = new Document("_id", doc.getDbObject().get("_id"));
+		getCollection().replaceOne(filter, doc.getDbObject(), new com.mongodb.client.model.ReplaceOptions().upsert(true));
 	}
-
-	private DBCursor qAll() {
-		DBCollection coll = getCollection();
-		DBCursor cur = null;
-		cur = coll.find();
-		return cur;
-	}
-
-	private DBCursor qAll_Keys() {
-		DBCollection coll = getCollection();
-		Integer attempts = 0;
-		DBCursor cur = null;
-		//get all entries but retrieve just the keys for better performance
-		cur = coll.find(new BasicDBObject(), new BasicDBObject("key", 1));
-		return cur;
-	}
-
-	private DBCursor qAll_Values() {
-		DBCollection coll = getCollection();
-		DBCursor cur = null;
-		//get all entries but retrieve just the data for better performance
-		cur = coll.find(new BasicDBObject(), new BasicDBObject("data", 1));
-		return cur;
-	}
-
-	private DBCursor qAll_Keys_Values() {
-		DBCollection coll = getCollection();
-		DBCursor cur = null;
-
-		//get all entries but retrieve just the keys and data for better performance
-		cur = coll.find(new BasicDBObject(), new BasicDBObject("key", 1).append("data", 1));
-		return cur;
-	}
-
 }

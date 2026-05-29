@@ -4,17 +4,17 @@
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either 
+ * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
- * You should have received a copy of the GNU Lesser General Public 
+ *
+ * You should have received a copy of the GNU Lesser General Public
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
- * 
+ *
  **/
 package org.lucee.mongodb;
 
@@ -28,161 +28,126 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection;
 import lucee.runtime.type.Struct;
 
+import org.bson.Document;
 import org.lucee.mongodb.support.DBObjectImplSupport;
-
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
 
 public class DBObjectImpl extends DBObjectImplSupport {
 
-	private DBObject obj;
+	private Document doc;
 
-	public DBObjectImpl(DBObject obj) {
-		if(obj==null) throw new RuntimeException();
-		this.obj=obj;
+	public DBObjectImpl(Document doc) {
+		if (doc == null) throw new RuntimeException("Document cannot be null");
+		this.doc = doc;
 	}
 
 	@Override
 	public int size() {
-		return obj.keySet().size();
+		return doc.size();
 	}
 
 	@Override
 	public Key[] keys() {
-		Iterator<String> it = obj.keySet().iterator();
-		List<Key> list=new ArrayList<Key>();
-		while(it.hasNext()){
-			list.add(caster.toKey(it.next(),null));
+		List<Key> list = new ArrayList<Key>();
+		for (String k : doc.keySet()) {
+			list.add(caster.toKey(k, null));
 		}
 		return list.toArray(new Key[list.size()]);
 	}
 
 	@Override
 	public Iterator<Key> keyIterator() {
-		return new KeyIterator(caster, obj.keySet().iterator());
+		return new KeyIterator(caster, doc.keySet().iterator());
 	}
 
 	@Override
 	public Object remove(Key key) throws PageException {
-		if(obj.containsField(key.getString()))
-			return obj.removeField(key.getString());
-		throw exp.createApplicationException("There is no key ["+key+"] in the DBObject");
-		
+		if (!doc.containsKey(key.getString()))
+			throw exp.createApplicationException("There is no key [" + key + "] in the Document");
+		return doc.remove(key.getString());
 	}
 
 	@Override
 	public Object removeEL(Key key) {
-		return obj.removeField(key.getString());
+		return doc.remove(key.getString());
 	}
 
-	// TODO was not existing in 4.5 @Override
 	public Object remove(Key key, Object defaultValue) {
-		Object rtn = obj.removeField(key.getString());
-		return rtn==null?defaultValue:rtn;
+		Object rtn = doc.remove(key.getString());
+		return rtn == null ? defaultValue : rtn;
 	}
 
 	@Override
 	public void clear() {
-		Iterator<String> it = obj.keySet().iterator();
-		while(it.hasNext()){
-			obj.removeField(it.next());
-		}
+		doc.clear();
 	}
 
 	@Override
 	public Object get(String key) throws PageException {
-		if(obj.containsField(key)) return toCFML(obj.get(key));
-		throw exp.createApplicationException("There is no key ["+key+"] in the DBObject");
+		if (doc.containsKey(key)) return toCFML(doc.get(key));
+		throw exp.createApplicationException("There is no key [" + key + "] in the Document");
 	}
 
 	@Override
 	public Object get(String key, Object defaultValue) {
-		if(obj.containsField(key)) return toCFML(obj.get(key));
+		if (doc.containsKey(key)) return toCFML(doc.get(key));
 		return defaultValue;
 	}
 
 	@Override
 	public Object set(String key, Object value) throws PageException {
-		obj.put(key, toMongo(value));
+		doc.put(key, toMongo(value));
 		return value;
 	}
 
 	@Override
 	public Object setEL(String key, Object value) {
-		obj.put(key, toMongo(value));
+		doc.put(key, toMongo(value));
 		return value;
 	}
 
 	@Override
 	public final Collection duplicate(boolean deepCopy) {
-		return new DBObjectImpl(new BasicDBObject(obj.toMap()));
+		return new DBObjectImpl(new Document(doc));
 	}
-	
+
 	@Override
 	public boolean containsKey(String key) {
-		return obj.containsField(key);
+		return doc.containsKey(key);
 	}
 
 	@Override
 	public Iterator<String> keysAsStringIterator() {
-		return obj.keySet().iterator();
+		return doc.keySet().iterator();
 	}
-
-	/*
-	public Iterator<Object> valueIterator() {
-		return new ValueIterator(this, obj
-				.keySet()
-				.iterator());
-	}
-
-	public Iterator<Entry<Key, Object>> entryIterator() {
-		return new EntryIterator(caster, this, obj.keySet().iterator());
-	}*/
 
 	@Override
 	public Object call(PageContext pc, Key methodName, Object[] args) throws PageException {
-
-		// containsField
-		if(methodName.equals("containsField")) {
-			checkArgLength("containsField",args,1,1);
-			return toCFML(obj.containsField(
-					caster.toString(args[0])
-			));
+		if (methodName.equals("containsField") || methodName.equals("containsKey")) {
+			checkArgLength("containsField", args, 1, 1);
+			return toCFML(doc.containsKey(caster.toString(args[0])));
 		}
-		// get
-		if(methodName.equals("get")) {
-			checkArgLength("get",args,1,1);
-			return toCFML(obj.get(
-					caster.toString(args[0])
-			));
+		if (methodName.equals("get")) {
+			checkArgLength("get", args, 1, 1);
+			return toCFML(doc.get(caster.toString(args[0])));
 		}
-		// isPartialObject
-		if(methodName.equals("isPartialObject")) {
-			checkArgLength("isPartialObject",args,0,0);
-			return toCFML(obj.isPartialObject());
+		if (methodName.equals("isPartialObject")) {
+			checkArgLength("isPartialObject", args, 0, 0);
+			return toCFML(false);
 		}
-		// markAsPartialObject
-		if(methodName.equals("markAsPartialObject")) {
-			checkArgLength("markAsPartialObject",args,0,0);
-			obj.markAsPartialObject();
+		if (methodName.equals("markAsPartialObject")) {
+			checkArgLength("markAsPartialObject", args, 0, 0);
 			return null;
 		}
-		// removeField
-		if(methodName.equals("removeField")) {
-			checkArgLength("removeField",args,1,1);
-			return toCFML(obj.removeField(
-					caster.toString(args[0])
-			));
+		if (methodName.equals("removeField") || methodName.equals("remove")) {
+			checkArgLength("removeField", args, 1, 1);
+			return toCFML(doc.remove(caster.toString(args[0])));
 		}
-		// toMap
-		if(methodName.equals("toMap")) {
-			checkArgLength("toMap",args,0,0);
-			return toCFML(obj.toMap());
+		if (methodName.equals("toMap")) {
+			checkArgLength("toMap", args, 0, 0);
+			return toCFML(doc);
 		}
-		
-		String functionNames="containsField,get,isPartialObject,markAsPartialObject,removeField,toMap";
-
-		throw exp.createApplicationException("function "+methodName+" does not exist existing functions are ["+functionNames+"]");
+		String functionNames = "containsField,get,isPartialObject,markAsPartialObject,removeField,toMap";
+		throw exp.createApplicationException("function " + methodName + " does not exist, existing functions are [" + functionNames + "]");
 	}
 
 	@Override
@@ -192,16 +157,14 @@ public class DBObjectImpl extends DBObjectImplSupport {
 
 	@Override
 	public Set keySet() {
-		return obj.keySet();
+		return doc.keySet();
 	}
 
-	public DBObject getDBObject() {
-		return obj;
+	public Document getDocument() {
+		return doc;
 	}
 
-	// dummy that is no longer used in 5.0
 	public long sizeOf() {
 		return 0;
 	}
-
 }

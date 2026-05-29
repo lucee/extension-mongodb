@@ -19,6 +19,7 @@
 package org.lucee.mongodb;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -39,10 +40,10 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 	private ObjectId id;
 	private static List<Key> keys;
 
-	public ObjectIdImpl(ObjectId id){
-		this.id=id;
-		if(keys==null){
-			keys=new ArrayList<Collection.Key>();
+	public ObjectIdImpl(ObjectId id) {
+		this.id = id;
+		if (keys == null) {
+			keys = new ArrayList<Collection.Key>();
 			keys.add(creator.createKey("date"));
 			keys.add(creator.createKey("timeStamp"));
 			keys.add(creator.createKey("id"));
@@ -79,7 +80,6 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 		return null;
 	}
 
-	// TODO @Override
 	public Object remove(Key key, Object defaultValue) {
 		return defaultValue;
 	}
@@ -87,21 +87,20 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 	@Override
 	public void clear() {
 		throw new RuntimeException(exp.createApplicationException("cannot clear ObjectId"));
-
 	}
 
 	@Override
 	public Object get(String key) throws PageException {
-		Object value = get(key,NULL);
-		if(value!=NULL) return value;
-		throw exp.createApplicationException("key "+key+" does not exists, supported keys are [date, timeStamp, id]");
+		Object value = get(key, NULL);
+		if (value != NULL) return value;
+		throw exp.createApplicationException("key " + key + " does not exist, supported keys are [date, timeStamp, id]");
 	}
 
 	@Override
 	public Object get(String key, Object defaultValue) {
-		if("date".equalsIgnoreCase(key)) return toCFML(id.getDate());
-		else if("timeStamp".equalsIgnoreCase(key)) return toCFML(id.getTimestamp());
-		else if("id".equalsIgnoreCase(key)) return toCFML(id.toString());
+		if ("date".equalsIgnoreCase(key)) return toCFML(new Date(id.getTimestamp() * 1000L));
+		else if ("timeStamp".equalsIgnoreCase(key)) return toCFML(id.getTimestamp());
+		else if ("id".equalsIgnoreCase(key)) return toCFML(id.toString());
 		return defaultValue;
 	}
 
@@ -122,7 +121,7 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 
 	@Override
 	public boolean containsKey(String key) {
-		return get(key,NULL)!=NULL;
+		return get(key, NULL) != NULL;
 	}
 
 	@Override
@@ -138,8 +137,8 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 	@Override
 	public Iterator<String> keysAsStringIterator() {
 		Iterator<Key> it = keys.iterator();
-		List<String> rtn=new ArrayList<String>();
-		while(it.hasNext()){
+		List<String> rtn = new ArrayList<String>();
+		while (it.hasNext()) {
 			rtn.add(it.next().getString());
 		}
 		return rtn.iterator();
@@ -147,63 +146,40 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 
 	@Override
 	public Object call(PageContext pc, Key methodName, Object[] args) throws PageException {
-		// getObjectId
-		if(methodName.equals("getObjectId")) {
-			checkArgLength("getObjectId",args,0,0);
+		if (methodName.equals("getObjectId")) {
+			checkArgLength("getObjectId", args, 0, 0);
 			return toMongo(id);
 		}
-		// getDate
-		else if(methodName.equals("getDate")) {
-			checkArgLength("getDate",args,0,0);
-			return toCFML(id.getDate());
+		if (methodName.equals("getDate")) {
+			checkArgLength("getDate", args, 0, 0);
+			return toCFML(new Date(id.getTimestamp() * 1000L));
 		}
-		// getTimestamp
-		else if(methodName.equals("getTimestamp")) {
-			checkArgLength("getTimestamp",args,0,0);
+		if (methodName.equals("getTimestamp")) {
+			checkArgLength("getTimestamp", args, 0, 0);
 			return toCFML(id.getTimestamp());
 		}
-		// getClass
-		else if(methodName.equals("getClass")) {
-			checkArgLength("getClass",args,0,0);
+		if (methodName.equals("getClass")) {
+			checkArgLength("getClass", args, 0, 0);
 			return toCFML(id.getClass());
 		}
-		// toByteArray
-		else if(methodName.equals("toByteArray")) {
-			checkArgLength("toByteArray",args,0,0);
+		if (methodName.equals("toByteArray")) {
+			checkArgLength("toByteArray", args, 0, 0);
 			return toCFML(id.toByteArray());
 		}
-		// toString
-		else if(methodName.equals("toString")) {
-			checkArgLength("toString",args,0,0);
+		if (methodName.equals("toString")) {
+			checkArgLength("toString", args, 0, 0);
 			return toCFML(id.toString());
 		}
-		// getGeneratedMachineIdentifier
-		else if(methodName.equals("getGeneratedMachineIdentifier")) {
-			checkArgLength("getGeneratedMachineIdentifier",args,0,0);
-			return toCFML(id.getGeneratedMachineIdentifier());
-		}
-		// getGeneratedProcessIdentifier
-		else if(methodName.equals("getGeneratedProcessIdentifier")) {
-			checkArgLength("getGeneratedProcessIdentifier",args,0,0);
-			return toCFML(id.getGeneratedProcessIdentifier());
-		}
-		// getMachineIdentifier
-		else if(methodName.equals("getMachineIdentifier")) {
-			checkArgLength("getMachineIdentifier",args,0,0);
-			return toCFML(id.getMachineIdentifier());
-		}
-		// getProcessIdentifier
-		else if(methodName.equals("getProcessIdentifier")) {
-			checkArgLength("getProcessIdentifier",args,0,0);
-			return toCFML(id.getProcessIdentifier());
-		}
-		// toHexString
-		else if(methodName.equals("toHexString")) {
-			checkArgLength("toHexString",args,0,0);
+		if (methodName.equals("toHexString")) {
+			checkArgLength("toHexString", args, 0, 0);
 			return toCFML(id.toHexString());
 		}
-
-		throw new UnsupportedOperationException("function "+methodName+" not supported");
+		// Methods removed in driver 5.x — provide informative errors
+		if (methodName.equals("getMachineIdentifier") || methodName.equals("getGeneratedMachineIdentifier") ||
+			methodName.equals("getProcessIdentifier") || methodName.equals("getGeneratedProcessIdentifier")) {
+			throw exp.createApplicationException("ObjectId." + methodName + "() was removed in MongoDB BSON driver 5.x");
+		}
+		throw new UnsupportedOperationException("function " + methodName + " not supported");
 	}
 
 	@Override
@@ -214,6 +190,4 @@ public class ObjectIdImpl extends CollObsSupport implements Castable {
 	public ObjectId getObjectId() {
 		return id;
 	}
-
-
 }

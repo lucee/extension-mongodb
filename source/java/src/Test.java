@@ -16,80 +16,47 @@
  * License along with this library.  If not, see <http://www.gnu.org/licenses/>.
  *
  **/
-import java.util.Set;
-
+import org.bson.Document;
 import org.lucee.mongodb.util.aprint;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoException;
-
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoCursor;
 
 public class Test {
-	public static void main(String[] args) throws MongoException {
+	public static void main(String[] args) {
+		MongoClient client = MongoClients.create("mongodb://localhost:27017");
 
-
-		MongoClient client = new MongoClient("localhost", 27017);
-
-		// databases
 		System.out.println("--- databases ---");
-		for (String s : client.getDatabaseNames()) {
+		for (String s : client.listDatabaseNames()) {
 			System.out.println(s);
 		}
 
-		DB db = client.getDB("test");
+		MongoDatabase db = client.getDatabase("test");
 
-		System.out.println(db.collectionExists("test"));
-		System.out.println(db.collectionExists("Test"));
-
-		// collection names
 		System.out.println("--- collection names ---");
-
-		Set<String> colls = db.getCollectionNames();
-		for (String s : colls) {
+		for (String s : db.listCollectionNames()) {
 			System.out.println(s);
 		}
 
-		aprint.e(db.collectionExists("test"));
-		aprint.e(db.collectionExists("TEST"));
-		aprint.e(db.collectionExists("Test"));
-		aprint.e(db.collectionExists("ttest"));
-		aprint.e(db.getCollection("test").count());
-		aprint.e(db.getCollection("Test").count());
-		aprint.e(db.getCollectionFromString("test").count());
-		aprint.e(db.getCollectionFromString("Test").count());
+		MongoCollection<Document> coll = db.getCollection("test");
+		aprint.e(coll.countDocuments());
 
-		if(true) return;
-
-		DBCollection coll = db.getCollection("test");
-		DBObject myDoc = coll.findOne();
+		Document myDoc = coll.find().first();
 		System.out.println(myDoc);
 
-		BasicDBObject doc = new BasicDBObject("name", "MongoDB").
-        append("type", "database").
-        append("count", 1)
-       .append("info", new BasicDBObject("x", 203).append("y", 102));
-		coll.insert(doc);
+		Document doc = new Document("name", "MongoDB")
+			.append("type", "database")
+			.append("count", 1)
+			.append("info", new Document("x", 203).append("y", 102));
+		coll.insertOne(doc);
 
-		DBCursor cur = coll.find();
-		while(cur.hasNext()){
-			System.out.println(cur.next());
+		try (MongoCursor<Document> cur = coll.find().iterator()) {
+			while (cur.hasNext()) {
+				System.out.println(cur.next());
+			}
 		}
-
-		coll = db.getCollection("TEST");
-		myDoc = coll.findOne();
-		System.out.println(myDoc);
-
-		doc = new BasicDBObject("name", "MongoDB").
-        append("type", "database").
-        append("count", 1)
-       .append("info", new BasicDBObject("x", 203).append("y", 102));
-		coll.insert(doc);
-
-
 	}
 }
