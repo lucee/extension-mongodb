@@ -46,7 +46,11 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 	}
 
 	public static DBImpl getInstanceByURI(String dbName, String uri) throws MongoException {
-		MongoClient client = MongoClients.create(uri);
+		MongoClient client = clients.get(uri);
+		if (client == null) {
+			client = MongoClients.create(uri);
+			clients.put(uri, client);
+		}
 		return new DBImpl(client.getDatabase(dbName), client);
 	}
 
