@@ -204,11 +204,38 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				Document opts = toDocument(args[1], null);
 				if (opts != null) {
 					IndexOptions idxOpts = new IndexOptions();
-					if (opts.containsKey("name")) idxOpts.name((String) opts.get("name"));
-					if (opts.containsKey("unique")) idxOpts.unique(caster.toBooleanValue(opts.get("unique")));
-					if (opts.containsKey("sparse")) idxOpts.sparse(caster.toBooleanValue(opts.get("sparse")));
+					if (opts.containsKey("name"))
+						idxOpts.name(caster.toString(opts.get("name")));
+					if (opts.containsKey("unique"))
+						idxOpts.unique(caster.toBooleanValue(opts.get("unique")));
+					if (opts.containsKey("sparse"))
+						idxOpts.sparse(caster.toBooleanValue(opts.get("sparse")));
+					if (opts.containsKey("background"))
+						// MongoDB 4.2+ ignores this (all builds are non-blocking), but the
+						// driver still accepts and forwards it, so pass it through
+						idxOpts.background(caster.toBooleanValue(opts.get("background")));
 					if (opts.containsKey("expireAfterSeconds"))
 						idxOpts.expireAfter(caster.toLongValue(opts.get("expireAfterSeconds")), TimeUnit.SECONDS);
+					if (opts.containsKey("partialFilterExpression")) {
+						Document pfe = toDocument(opts.get("partialFilterExpression"), null);
+						if (pfe != null) idxOpts.partialFilterExpression(pfe);
+					}
+					if (opts.containsKey("weights")) {
+						Document w = toDocument(opts.get("weights"), null);
+						if (w != null) idxOpts.weights(w);
+					}
+					if (opts.containsKey("defaultLanguage"))
+						idxOpts.defaultLanguage(caster.toString(opts.get("defaultLanguage")));
+					if (opts.containsKey("languageOverride"))
+						idxOpts.languageOverride(caster.toString(opts.get("languageOverride")));
+					if (opts.containsKey("hidden"))
+						idxOpts.hidden(caster.toBooleanValue(opts.get("hidden")));
+					if (opts.containsKey("wildcardProjection")) {
+						Document wp = toDocument(opts.get("wildcardProjection"), null);
+						if (wp != null) idxOpts.wildcardProjection(wp);
+					}
+					// "dropDups" was removed in MongoDB 3.0 and is not in IndexOptions;
+					// silently ignore it so existing callers don't break
 					coll.createIndex(keys, idxOpts);
 				} else {
 					coll.createIndex(keys, new IndexOptions().name(caster.toString(args[1])));
