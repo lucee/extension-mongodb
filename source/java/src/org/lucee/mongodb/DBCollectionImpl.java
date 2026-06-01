@@ -34,9 +34,12 @@ import lucee.runtime.type.Array;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
 
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.lucee.mongodb.support.DBCollectionImplSupport;
+
+import com.mongodb.client.DistinctIterable;
 
 import com.mongodb.MongoNamespace;
 import com.mongodb.MongoBulkWriteException;
@@ -153,15 +156,14 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		if (methodName.equals("distinct")) {
 			int len = checkArgLength("distinct", args, 1, 2);
 			String field = caster.toString(args[0]);
-			if (len == 1) {
-				List<Object> result = new ArrayList<Object>();
-				coll.distinct(field, Object.class).into(result);
-				return toCFML(result);
-			} else {
-				List<Object> result = new ArrayList<Object>();
-				coll.distinct(field, Object.class).filter(toDocument(args[1])).into(result);
-				return toCFML(result);
+			// Object.class has no registered codec in driver 5.x; BsonValue.class works for any field type
+			DistinctIterable<BsonValue> di = coll.distinct(field, BsonValue.class);
+			if (len == 2) di = di.filter(toDocument(args[1]));
+			List<Object> result = new ArrayList<Object>();
+			for (BsonValue bv : di) {
+				result.add(bsonValueToJava(bv));
 			}
+			return toCFML(result);
 		}
 
 		// drop
@@ -237,23 +239,27 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		// getWriteConcern
 		if (methodName.equals("getWriteConcern")) {
 			checkArgLength("getWriteConcern", args, 0, 0);
-			return toCFML(coll.getWriteConcern().toString());
+			return new WriteConcernImpl(coll.getWriteConcern());
 		}
 
 		// find
 		if (methodName.equals("find")) {
 			int len = checkArgLength("find", args, 0, 3);
 			FindIterable<Document> cursor;
+			Document findFilter = null;
 			if (len == 0) {
 				cursor = coll.find();
 			} else if (len == 1) {
-				cursor = coll.find(toDocument(args[0]));
+				findFilter = toDocument(args[0]);
+				cursor = coll.find(findFilter);
 			} else if (len == 2) {
-				cursor = coll.find(toDocument(args[0])).projection(toDocument(args[1]));
+				findFilter = toDocument(args[0]);
+				cursor = coll.find(findFilter).projection(toDocument(args[1]));
 			} else {
-				cursor = coll.find(toDocument(args[0])).projection(toDocument(args[1])).skip(caster.toIntValue(args[2]));
+				findFilter = toDocument(args[0]);
+				cursor = coll.find(findFilter).projection(toDocument(args[1])).skip(caster.toIntValue(args[2]));
 			}
-			return toCFML(cursor);
+			return new DBCursorImpl(cursor, coll, findFilter);
 		}
 
 		// findOne
@@ -614,5 +620,39 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 
 	public MongoCollection<Document> getCollection() {
 		return coll;
+	}
+
+	/**
+	 * Convert a {@link BsonValue} (returned by {@code distinct()} and similar driver APIs) to
+	 * a plain Java object that {@link #toCFML} can handle.  Handles all common BSON types
+	 * recursively; falls back to the BSON string representation for anything exotic.
+	 */
+	private Object bsonValueToJava(BsonValue bv) {
+		if (bv == null || bv.isNull() || bv.getBsonType() == org.bson.BsonType.UNDEFINED) return null;
+		if (bv.isString()) return bv.asString().getValue();
+		if (bv.isBoolean()) return bv.asBoolean().getValue();
+		if (bv.isInt32()) return (double) bv.asInt32().getValue();
+		if (bv.isInt64()) return (double) bv.asInt64().getValue();
+		if (bv.isDouble()) return bv.asDouble().getValue();
+		if (bv.isDecimal128()) return bv.asDecimal128().getValue().bigDecimalValue().doubleValue();
+		if (bv.isObjectId()) return new ObjectIdImpl(bv.asObjectId().getValue());
+		if (bv.isDateTime()) return new java.util.Date(bv.asDateTime().getValue());
+		if (bv.isDocument()) {
+			// Convert BsonDocument -> Document by recursing over entries
+			Document doc = new Document();
+			for (Map.Entry<String, BsonValue> entry : bv.asDocument().entrySet()) {
+				doc.put(entry.getKey(), bsonValueToJava(entry.getValue()));
+			}
+			return toCFML(doc);
+		}
+		if (bv.isArray()) {
+			List<Object> list = new ArrayList<Object>();
+			for (BsonValue item : bv.asArray()) {
+				list.add(bsonValueToJava(item));
+			}
+			return toCFML(list);
+		}
+		// Fallback: use BSON extended-JSON representation
+		return bv.toString();
 	}
 }

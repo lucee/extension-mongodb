@@ -168,7 +168,8 @@ public class ObjectSupport {
 			}
 			return rtn;
 		}
-		if (obj instanceof Map && !(obj instanceof Document)) {
+		if (obj instanceof Document) return documentToStruct((Document) obj);
+		if (obj instanceof Map) {
 			Map map = (Map) obj;
 			Struct rtn = creator.createStruct();
 			for (Object raw : map.entrySet()) {
@@ -177,7 +178,6 @@ public class ObjectSupport {
 			}
 			return rtn;
 		}
-		if (obj instanceof Document) return new DBObjectImpl((Document) obj);
 		if (obj instanceof AggregateIterable) return new AggregationOutputImpl((AggregateIterable<Document>) obj);
 		if (obj instanceof MongoCollection) return new DBCollectionImpl((MongoCollection<Document>) obj, null);
 		if (obj instanceof FindIterable) return new DBCursorImpl((FindIterable<Document>) obj);
@@ -195,6 +195,20 @@ public class ObjectSupport {
 		if (obj instanceof Number && !(obj instanceof Double))
 			return CFMLEngineFactory.getInstance().getCastUtil().toDouble(obj, null);
 		return obj;
+	}
+
+	/**
+	 * Convert a MongoDB Document to a native Lucee Struct.
+	 * Native Structs are case-insensitive, matching CFML's behaviour.
+	 * Values are converted recursively via toCFML() so nested Documents
+	 * become Structs and Lists become Lucee Arrays.
+	 */
+	private Struct documentToStruct(Document doc) {
+		Struct struct = creator.createStruct();
+		for (Map.Entry<String, Object> entry : doc.entrySet()) {
+			struct.setEL(caster.toKey(entry.getKey(), null), toCFML(entry.getValue()));
+		}
+		return struct;
 	}
 
 	@SuppressWarnings({"rawtypes", "unchecked"})

@@ -34,6 +34,7 @@ import org.lucee.mongodb.support.DBCursorImplSupport;
 
 import com.mongodb.ServerCursor;
 import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 
 public class DBCursorImpl extends DBCursorImplSupport {
@@ -42,9 +43,17 @@ public class DBCursorImpl extends DBCursorImplSupport {
 
 	private FindIterable<Document> iterable;
 	private MongoCursor<Document> cursor;
+	private MongoCollection<Document> collection;
+	private Document filter;
 
 	public DBCursorImpl(FindIterable<Document> iterable) {
 		this.iterable = iterable;
+	}
+
+	public DBCursorImpl(FindIterable<Document> iterable, MongoCollection<Document> collection, Document filter) {
+		this.iterable = iterable;
+		this.collection = collection;
+		this.filter = filter;
 	}
 
 	private MongoCursor<Document> cursor() {
@@ -155,8 +164,19 @@ public class DBCursorImpl extends DBCursorImplSupport {
 			checkArgLength("getBatchSize", args, 0, 0);
 			return toCFML(0);
 		}
-		// count/size: iterate to count since FindIterable has no count() in 5.x
-		if (methodName.equals("count") || methodName.equals("size") || methodName.equals("length") || methodName.equals("itcount")) {
+		// count: total documents matching the filter, ignoring limit/skip (matches 3.x DBCursor.count() semantics)
+		if (methodName.equals("count")) {
+			checkArgLength("count", args, 0, 0);
+			if (collection != null) {
+				return toCFML(collection.countDocuments(filter != null ? filter : new Document()));
+			}
+			// fallback: iterate when no collection reference is available
+			int n = 0;
+			for (Document ignored : iterable) n++;
+			return toCFML(n);
+		}
+		// size/length/itcount: count respecting limit/skip (iterate the bounded FindIterable)
+		if (methodName.equals("size") || methodName.equals("length") || methodName.equals("itcount")) {
 			checkArgLength(methodName.getString(), args, 0, 0);
 			int n = 0;
 			for (Document ignored : iterable) n++;

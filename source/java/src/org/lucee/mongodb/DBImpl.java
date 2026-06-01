@@ -230,7 +230,7 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 		}
 		if (methodName.equals("getWriteConcern")) {
 			checkArgLength("getWriteConcern", args, 0, 0);
-			return toCFML(db.getWriteConcern().toString());
+			return new WriteConcernImpl(db.getWriteConcern());
 		}
 		if (methodName.equals("setWriteConcern")) {
 			checkArgLength("setWriteConcern", args, 1, 1);
