@@ -311,6 +311,79 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.lengthOf(idx,1); // only _id index should remain after dropIndexes();
 	}
 
+	public void function testIndexOptions() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// helper: find a single index by name in the listing
+		var findIdx = function(name) {
+			var all = coll.getIndexes();
+			var match = all.filter(function(i) { return structKeyExists(i, "name") && i.name == name; });
+			return match;
+		};
+
+		// --- unique ---
+		coll.createIndex({"name": 1}, {"name": "idx_unique_name", "unique": true});
+		var match = findIdx("idx_unique_name");
+		$assert.lengthOf(match, 1);
+		$assert.isTrue(structKeyExists(match[1], "unique") && match[1].unique,
+			"unique index should be flagged in index definition");
+
+		// the constraint must actually be enforced (name "One" already in the collection)
+		var threw = false;
+		try {
+			coll.insert({"_id": 99, "grp": 9, "name": "One"});
+		} catch(any e) {
+			threw = true;
+		}
+		$assert.isTrue(threw, "unique index should reject a duplicate key");
+		coll.dropIndex("idx_unique_name");
+
+		// --- sparse ---
+		coll.createIndex({"optional_field": 1}, {"name": "idx_sparse", "sparse": true});
+		match = findIdx("idx_sparse");
+		$assert.lengthOf(match, 1);
+		$assert.isTrue(structKeyExists(match[1], "sparse") && match[1].sparse,
+			"sparse index should be flagged in index definition");
+		coll.dropIndex("idx_sparse");
+
+		// --- partialFilterExpression ---
+		coll.createIndex({"grp": 1}, {
+			"name": "idx_partial",
+			"partialFilterExpression": {"grp": {"$gt": 1}}
+		});
+		match = findIdx("idx_partial");
+		$assert.lengthOf(match, 1);
+		$assert.isTrue(structKeyExists(match[1], "partialFilterExpression"),
+			"index definition should contain partialFilterExpression");
+		coll.dropIndex("idx_partial");
+
+		// --- TTL (expireAfterSeconds) ---
+		coll.createIndex({"name": 1}, {"name": "idx_ttl", "expireAfterSeconds": 3600});
+		match = findIdx("idx_ttl");
+		$assert.lengthOf(match, 1);
+		$assert.isTrue(structKeyExists(match[1], "expireAfterSeconds"),
+			"TTL index should carry expireAfterSeconds in its definition");
+		$assert.isEqual(3600, match[1].expireAfterSeconds);
+		coll.dropIndex("idx_ttl");
+
+		// --- text index with weights ---
+		coll.createIndex({"name": "text"}, {
+			"name": "idx_text",
+			"weights": {"name": 10}
+		});
+		match = findIdx("idx_text");
+		$assert.lengthOf(match, 1);
+		$assert.isTrue(structKeyExists(match[1], "weights"),
+			"text index with weights should expose weights in its definition");
+		coll.dropIndex("idx_text");
+
+		// --- drop by specification document (not by name string) ---
+		coll.createIndex({"grp": 1, "name": 1}, {"name": "idx_compound"});
+		$assert.lengthOf(coll.getIndexes(), 2); // _id + compound
+		coll.dropIndex({"grp": 1, "name": 1}); // pass spec doc instead of name string
+		$assert.lengthOf(coll.getIndexes(), 1); // only _id should remain
+	}
+
 	public void function testCollectionUtils() skip="isNotSupported" {
 		var coll = resetTestCollection();
 
