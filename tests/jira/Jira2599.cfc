@@ -167,6 +167,27 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.isEqual( "Six", docsFound.next().name );
 	}
 
+	public void function testProjection() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// find() with projection — include name only, explicitly exclude _id
+		var docs = coll.find({}, {"name": 1, "_id": 0}).toArray();
+		$assert.isEqual(5, docs.len());
+		$assert.isTrue(structKeyExists(docs[1], "name"));
+		$assert.isFalse(structKeyExists(docs[1], "grp"),  "grp should be excluded by projection");
+		$assert.isFalse(structKeyExists(docs[1], "_id"),  "_id should be excluded by projection");
+
+		// findOne() with projection
+		var doc = coll.findOne({"_id": 1}, {"name": 1, "_id": 0});
+		$assert.isEqual("One", doc.name);
+		$assert.isFalse(structKeyExists(doc, "grp"), "grp should be excluded by projection");
+
+		// findOne() 3-arg form: filter + projection + sort
+		// highest _id in grp=1 is _id=3 (name="Three")
+		doc = coll.findOne({"grp": 1}, {"name": 1, "_id": 0}, {"_id": -1});
+		$assert.isEqual("Three", doc.name);
+	}
+
 	public void function testUpdate() skip="isNotSupported" {
 		var coll = resetTestCollection();
 
@@ -211,6 +232,44 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.isEqual( 0, coll.count() );
 	}
 
+	public void function testWriteResult() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// Successful update — matched and modified
+		var result = coll.update({"_id": 1}, {"$set": {"updated": true}});
+		$assert.isEqual(1, result.getN());
+		$assert.isTrue(result.isUpdateOfExisting());
+		$assert.isTrue(result.isOk());
+
+		// Update with no matching document
+		result = coll.update({"_id": 99}, {"$set": {"updated": true}});
+		$assert.isEqual(0, result.getN());
+		$assert.isFalse(result.isUpdateOfExisting());
+
+		// Remove returns n = number of documents deleted
+		result = coll.remove({"_id": 2});
+		$assert.isEqual(1, result.getN());
+		$assert.isTrue(result.isOk());
+	}
+
+	public void function testReplacement() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// Pass a plain document (no $ operators) — must route to replaceOne(), not updateOne()
+		coll.update({"_id": 1}, {"_id": 1, "name": "One Replaced", "replaced": true});
+		var doc = coll.findOne({"_id": 1});
+		$assert.isEqual("One Replaced", doc.name);
+		$assert.isTrue(structKeyExists(doc, "replaced") && doc.replaced);
+		// "grp" was not in the replacement document so it should be gone entirely
+		$assert.isFalse(structKeyExists(doc, "grp"),
+			"full replacement should remove fields absent from the replacement document");
+
+		// findAndModify() with a replacement document
+		var before = coll.findAndModify({"_id": 2}, {"_id": 2, "name": "Two Replaced"});
+		$assert.isEqual("Two", before.name); // returnNew defaults to false — pre-update doc returned
+		$assert.isEqual("Two Replaced", coll.findOne({"_id": 2}).name);
+	}
+
 	public void function testBulkWrite() skip="isNotSupported" {
 		var coll = resetTestCollection();
 
@@ -249,6 +308,42 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.isEqual( 2, bwResult.nRemoved );
 		$assert.isEqual( "Six", coll.findOne({"_id":6}).name );
 		$assert.isEqual( 6, coll.count() );
+	}
+
+	public void function testNestedDocuments() skip="isNotSupported" {
+		var coll = db.getCollection("test_nested");
+		coll.drop();
+
+		coll.insert({
+			"_id"    : 1,
+			"name"   : "test",
+			"address": {"street": "123 Main St", "city": "Anytown"},
+			"tags"   : ["mongodb", "cfml", "lucee"],
+			"scores" : [
+				{"subject": "math",    "score": 95},
+				{"subject": "english", "score": 87}
+			]
+		});
+
+		var doc = coll.findOne({"_id": 1});
+
+		// Nested document must come back as a case-insensitive Lucee struct
+		$assert.typeOf("struct", doc.address);
+		$assert.isEqual("123 Main St", doc.address.STREET); // uppercase key access
+		$assert.isEqual("Anytown",     doc.address.City);   // mixed-case key access
+
+		// Top-level array must be a native Lucee array
+		$assert.typeOf("array", doc.tags);
+		$assert.lengthOf(doc.tags, 3);
+		$assert.isEqual("cfml", doc.tags[2]);
+
+		// Array of nested documents
+		$assert.typeOf("array",  doc.scores);
+		$assert.typeOf("struct", doc.scores[1]);
+		$assert.isEqual(95,        doc.scores[1].score);
+		$assert.isEqual("english", doc.scores[2].SUBJECT); // uppercase key access on nested struct
+
+		coll.drop();
 	}
 
 	public void function testAggregateResults() skip="isNotSupported" {
@@ -430,6 +525,52 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	public void function testGroupAndDistinct() skip="isNotSupported" {
 		var coll = resetTestCollection();
 		$assert.isEqual(2, coll.distinct("grp").len());
+	}
+
+	public void function testCountWithFilter() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		$assert.isEqual(5, coll.count());              // all documents
+		$assert.isEqual(3, coll.count({"grp": 1}));   // grp=1 only
+		$assert.isEqual(2, coll.count({"grp": 2}));   // grp=2 only
+		$assert.isEqual(0, coll.count({"grp": 99}));  // no match
+	}
+
+	public void function testDistinctWithFilter() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// Filter down to grp > 1 — only grp=2 should appear
+		var groups = coll.distinct("grp", {"grp": {"$gt": 1}});
+		$assert.isEqual(1, groups.len());
+		$assert.isEqual(2, groups[1]);
+
+		// Distinct names within a specific group
+		var names = coll.distinct("name", {"grp": 1});
+		$assert.isEqual(3, names.len()); // One, Two, Three
+	}
+
+	public void function testSiblingDB() skip="isNotSupported" {
+		var siblingName = "lucee_mongo_ext_test_sibling";
+
+		// getSiblingDB (MongoDB shell name) and getSisterDB (Java driver name) are aliases
+		var sibling = db.getSiblingDB(siblingName);
+		$assert.isEqual(siblingName, sibling.getName());
+
+		// Data written to the sibling DB must not appear in the main DB
+		var mainColl    = resetTestCollection(); // 5 docs in "test" db
+		var siblingColl = sibling.getCollection("test");
+		siblingColl.drop();
+		siblingColl.insert({"_id": 1, "name": "in sibling"});
+
+		$assert.isEqual(5, mainColl.count());    // main db unaffected
+		$assert.isEqual(1, siblingColl.count()); // sibling db has exactly its own doc
+
+		// getSisterDB must resolve to the same database
+		var sister = db.getSisterDB(siblingName);
+		$assert.isEqual(1, sister.getCollection("test").count());
+
+		// cleanup
+		sibling.dropDatabase();
 	}
 
 	public void function testRename() skip="isNotSupported" {

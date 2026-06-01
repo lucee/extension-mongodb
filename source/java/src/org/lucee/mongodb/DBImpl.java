@@ -218,10 +218,10 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 			checkArgLength("getReadPreference", args, 0, 0);
 			return toCFML(db.getReadPreference().toString());
 		}
-		if (methodName.equals("getSisterDB")) {
-			checkArgLength("getSisterDB", args, 1, 1);
+		if (methodName.equals("getSisterDB") || methodName.equals("getSiblingDB")) {
+			checkArgLength(methodName.getString(), args, 1, 1);
 			if (client == null)
-				throw exp.createApplicationException("getSisterDB requires a MongoClient reference; use MongoDbConnect() with a URI");
+				throw exp.createApplicationException(methodName + "() requires a MongoClient reference; use MongoDbConnect() with a URI");
 			return toCFML(new DBImpl(client.getDatabase(caster.toString(args[0])), client));
 		}
 		if (methodName.equals("getStats")) {
