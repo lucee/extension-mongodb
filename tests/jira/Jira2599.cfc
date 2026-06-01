@@ -386,6 +386,39 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.lengthOf(coll.getIndexes(), 1); // only _id should remain
 	}
 
+	public void function testKeyOrderPreservation() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// --- createIndex: ordered struct key order must reach MongoDB ---
+		// MongoDB auto-names an index from the key spec in the exact order it
+		// receives the fields, so the generated name is a reliable signal.
+		// Use reverse-alphabetical order (b before a) to distinguish a preserved
+		// ordering ("b_1_a_1") from an accidentally alphabetical one ("a_1_b_1").
+		coll.createIndex(["b": 1, "a": 1]); // ordered struct — b must come first
+		var idx = coll.getIndexes();
+		var match = idx.filter(function(i) {
+			return structKeyExists(i, "name") && (i.name == "b_1_a_1" || i.name == "a_1_b_1");
+		});
+		$assert.lengthOf(match, 1);
+		$assert.isEqual("b_1_a_1", match[1].name,
+			"ordered struct must preserve key order: b should precede a in the index spec");
+		coll.dropIndex("b_1_a_1");
+
+		// --- sort: ordered struct key order determines sort priority ---
+		// sort(["grp":1, "name":1]) means grp is the primary sort key.
+		// grp=1 docs in name-asc order:  One, Three, Two
+		// grp=2 docs in name-asc order:  Five, Four
+		// If key order were swapped, name would become the primary key and the
+		// first result would be "Five" (alphabetically first), not "One".
+		var docs = coll.find().sort(["grp": 1, "name": 1]).toArray();
+		$assert.isEqual(5, docs.len());
+		$assert.isEqual("One",   docs[1].name);
+		$assert.isEqual("Three", docs[2].name);
+		$assert.isEqual("Two",   docs[3].name);
+		$assert.isEqual("Five",  docs[4].name);
+		$assert.isEqual("Four",  docs[5].name);
+	}
+
 	public void function testCollectionUtils() skip="isNotSupported" {
 		var coll = resetTestCollection();
 

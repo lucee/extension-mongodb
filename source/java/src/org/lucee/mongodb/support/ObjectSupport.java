@@ -123,6 +123,13 @@ public class ObjectSupport {
 	public Document toDocument(Object obj) throws PageException {
 		if (obj instanceof Document) return (Document) obj;
 		if (obj instanceof DBObjectImpl) return ((DBObjectImpl) obj).getDocument();
+		// Handle Lucee Struct directly to preserve ordered-struct key order.
+		// caster.toMap() may materialise a new HashMap, discarding the insertion
+		// order of linked structs (["key":val, ...] syntax).
+		if (decision.isStruct(obj)) {
+			Struct struct = caster.toStruct(obj, null);
+			if (struct != null) return structToDocument(struct);
+		}
 		return toDocument(caster.toMap(obj), null);
 	}
 
@@ -198,6 +205,26 @@ public class ObjectSupport {
 	}
 
 	/**
+	 * Convert a Lucee Struct to a MongoDB Document, preserving the key insertion
+	 * order of ordered structs (CFML's ["key":val, ...] syntax).
+	 *
+	 * Uses {@link Collection#entryIterator()} rather than {@link Cast#toMap} to
+	 * avoid any re-hashing that could discard the LinkedHashMap ordering.
+	 * This matters for compound index specs and multi-key sort documents where
+	 * MongoDB treats field order as semantically significant.
+	 */
+	@SuppressWarnings({"unchecked"})
+	private Document structToDocument(Struct struct) {
+		Document doc = new Document();
+		Iterator<Entry<Key, Object>> it = struct.entryIterator();
+		while (it.hasNext()) {
+			Entry<Key, Object> entry = it.next();
+			doc.put(entry.getKey().getString(), toMongo(entry.getValue()));
+		}
+		return doc;
+	}
+
+	/**
 	 * Convert a MongoDB Document to a native Lucee Struct.
 	 * Native Structs are case-insensitive, matching CFML's behaviour.
 	 * Values are converted recursively via toCFML() so nested Documents
@@ -224,8 +251,12 @@ public class ObjectSupport {
 		if (obj instanceof Date) {
 			return new Date(((Date) obj).getTime());
 		}
-		if (obj instanceof Map || decision.isStruct(obj)) {
-			return toMongoDocument(caster.toMap(obj, null));
+		if (decision.isStruct(obj)) {
+			Struct struct = caster.toStruct(obj, null);
+			if (struct != null) return structToDocument(struct);
+		}
+		if (obj instanceof Map) {
+			return toMongoDocument((Map) obj);
 		}
 		if (obj instanceof AggregationOutputImpl) return ((AggregationOutputImpl) obj).getIterable();
 		if (obj instanceof CommandResultImpl) return ((CommandResultImpl) obj).getDocument();
