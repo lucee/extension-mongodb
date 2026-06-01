@@ -378,9 +378,11 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		coll.dropIndex("idx_text");
 
 		// --- drop by specification document (not by name string) ---
-		coll.createIndex({"grp": 1, "name": 1}, {"name": "idx_compound"});
-		$assert.lengthOf(coll.getIndexes(), 2); // _id + compound
-		coll.dropIndex({"grp": 1, "name": 1}); // pass spec doc instead of name string
+		// Use a single-field key to avoid CFML struct key-ordering ambiguity:
+		// compound spec docs may serialize in a different order than MongoDB stored them.
+		coll.createIndex({"grp": 1}); // auto-named by MongoDB
+		$assert.lengthOf(coll.getIndexes(), 2); // _id + grp
+		coll.dropIndex({"grp": 1}); // spec doc instead of name string
 		$assert.lengthOf(coll.getIndexes(), 1); // only _id should remain
 	}
 
