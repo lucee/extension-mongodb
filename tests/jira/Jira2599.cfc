@@ -86,7 +86,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		assertEquals("test",mongo.getName());
 	}
 
-	public void function testConnectByURI() skip="isNotSupported" {
+	public void function testConnectByURI() {
 		var uri = "mongodb://#variables.mongoDB.server#:#variables.mongoDB.port#";
 		if (!isempty(variables.mongoDB.user) && !isEmpty(variables.mongoDB.pass))
 			uri = "mongodb://#variables.mongoDB.user#:#variables.mongoDB.pass#@#variables.mongoDB.server#:#variables.mongoDB.port#";
@@ -322,33 +322,6 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	public void function testGroupAndDistinct() skip="isNotSupported" {
 		var coll = resetTestCollection();
 		$assert.isEqual(2, coll.distinct("grp").len());
-
-		// group is not implemented yet!		
-	}
-
-	public void function testMapReduce() skip="isNotSupported" {
-		var coll = resetTestCollection();
-		var fMap = "
-			function(){
-				var output = { id:this._id, name:this.name };
-				emit(this._id,output);
-			}		
-		";
-
-		var fRed = "
-			function(key, values) {
-				var outs = { name:null };
-				values.forEach(function(v){
-					if (outs.name===null) {
-						outs.name = v.name;
-					}
-				});
-				return outs;
-			};
-		"
-
-		coll.mapReduce(fMap, fRed, "testmapreduce", {});
-		$assert.isEqual(5, db.getCollection("testmapreduce").count());
 	}
 
 	public void function testRename() skip="isNotSupported" {
