@@ -620,13 +620,16 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 					"required": ["name", "age"],
 					"properties": {
 						"name": {"bsonType": "string"},
-						"age":  {"bsonType": "int",  "minimum": 0}
+						"age":  {"bsonType": "number", "minimum": 0}
 					}
 				}
 			},
 			"validationLevel":  "strict",
 			"validationAction": "error"
 		});
+		// Note: use "number" not "int" — CFML represents all numerics as double,
+		// so values like 30 arrive at MongoDB as 30.0 (BSON double).
+		// "bsonType: int" would reject them; "number" accepts int, long, and double.
 
 		// valid document should insert without error
 		coll.insert({"name": "Alice", "age": 30});
