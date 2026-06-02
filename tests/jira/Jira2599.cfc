@@ -752,6 +752,77 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		sibling.dropDatabase();
 	}
 
+	/**
+	 * Atlas Search / Vector Search index management.
+	 * skip="true" because these operations require an Atlas cluster — they will
+	 * throw on local MongoDB.  Change skip to "isNotSupported" when running
+	 * against an Atlas-connected test server.
+	 */
+	public void function testSearchIndexes() skip="true" {
+		var coll = resetTestCollection();
+
+		// --- Atlas Search index (default type = "search") ---
+		var searchName = coll.createSearchIndex("test_search_idx", {
+			"mappings": {"dynamic": true}
+		});
+		$assert.isEqual("test_search_idx", searchName,
+			"createSearchIndex should return the index name");
+
+		// --- Vector Search index ---
+		var vectorName = coll.createSearchIndex("test_vector_idx", {
+			"fields": [
+				{
+					"type":          "vector",
+					"path":          "embedding",
+					"numDimensions": 4,
+					"similarity":    "cosine"
+				}
+			]
+		}, "vectorSearch");
+		$assert.isEqual("test_vector_idx", vectorName);
+
+		// --- listSearchIndexes ---
+		// Atlas index builds are async; in a real test you'd poll until queryable.
+		// Here we just assert the call succeeds and returns an array.
+		var indexes = coll.listSearchIndexes();
+		$assert.typeOf("array", indexes);
+
+		// listSearchIndexes(name) filters to a specific index
+		var filtered = coll.listSearchIndexes("test_search_idx");
+		$assert.typeOf("array", filtered);
+
+		// --- updateSearchIndex ---
+		coll.updateSearchIndex("test_search_idx", {
+			"mappings": {"dynamic": false}
+		});
+
+		// --- createSearchIndexes (batch) ---
+		var names = coll.createSearchIndexes([
+			{
+				"name":       "batch_search",
+				"definition": {"mappings": {"dynamic": true}},
+				"type":       "search"
+			},
+			{
+				"name": "batch_vector",
+				"definition": {
+					"fields": [
+						{"type": "vector", "path": "vec", "numDimensions": 2, "similarity": "euclidean"}
+					]
+				},
+				"type": "vectorSearch"
+			}
+		]);
+		$assert.typeOf("array", names);
+		$assert.isEqual(2, names.len());
+
+		// --- dropSearchIndex ---
+		coll.dropSearchIndex("test_search_idx");
+		coll.dropSearchIndex("test_vector_idx");
+		coll.dropSearchIndex("batch_search");
+		coll.dropSearchIndex("batch_vector");
+	}
+
 	public void function testRename() skip="isNotSupported" {
 		var coll = resetTestCollection();
 		coll.rename("test2");

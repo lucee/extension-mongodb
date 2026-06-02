@@ -40,6 +40,9 @@ import org.bson.conversions.Bson;
 import org.lucee.mongodb.support.DBCollectionImplSupport;
 
 import com.mongodb.client.DistinctIterable;
+import com.mongodb.client.ListSearchIndexesIterable;
+import com.mongodb.client.model.SearchIndexModel;
+import com.mongodb.client.model.SearchIndexType;
 
 import com.mongodb.MongoNamespace;
 import com.mongodb.MongoBulkWriteException;
@@ -257,6 +260,71 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 					new IndexOptions().name(caster.toString(args[1])).unique(caster.toBooleanValue(args[2])));
 				return null;
 			}
+		}
+
+		// createSearchIndex — Atlas Search and Vector Search (Atlas only)
+		// createSearchIndex(definition)
+		// createSearchIndex(name, definition)
+		// createSearchIndex(name, definition, type)  — type: "search" | "vectorSearch"
+		if (methodName.equals("createSearchIndex")) {
+			int len = checkArgLength("createSearchIndex", args, 1, 3);
+			if (len == 1) {
+				return toCFML(coll.createSearchIndex(toDocument(args[0])));
+			} else if (len == 2) {
+				return toCFML(coll.createSearchIndex(caster.toString(args[0]), toDocument(args[1])));
+			} else {
+				// Type must go through SearchIndexModel — no 3-arg createSearchIndex on the driver
+				SearchIndexType siType = resolveSearchIndexType(caster.toString(args[2], "search"));
+				List<String> names = coll.createSearchIndexes(
+					java.util.Collections.singletonList(
+						new SearchIndexModel(caster.toString(args[0]), toDocument(args[1]), siType)));
+				return toCFML(names.isEmpty() ? "" : names.get(0));
+			}
+		}
+
+		// createSearchIndexes(array of {name, definition [, type]} structs)
+		if (methodName.equals("createSearchIndexes")) {
+			checkArgLength("createSearchIndexes", args, 1, 1);
+			Array siArr = caster.toArray(args[0]);
+			List<SearchIndexModel> models = new ArrayList<SearchIndexModel>();
+			Iterator<Object> siIt = siArr.valueIterator();
+			while (siIt.hasNext()) {
+				lucee.runtime.type.Struct sct = caster.toStruct(siIt.next(), null);
+				if (sct == null) continue;
+				Document def = toDocument(sct.get("definition", null));
+				Object nameObj = sct.get("name", null);
+				Object typeObj = sct.get("type", null);
+				SearchIndexType siType = resolveSearchIndexType(
+					typeObj != null ? caster.toString(typeObj, "search") : "search");
+				models.add(nameObj != null
+					? new SearchIndexModel(caster.toString(nameObj), def, siType)
+					: new SearchIndexModel(def));
+			}
+			return toCFML(coll.createSearchIndexes(models));
+		}
+
+		// listSearchIndexes([name]) — returns array of index-definition structs
+		if (methodName.equals("listSearchIndexes")) {
+			int len = checkArgLength("listSearchIndexes", args, 0, 1);
+			ListSearchIndexesIterable<Document> siIterable = coll.listSearchIndexes();
+			if (len == 1) siIterable = siIterable.name(caster.toString(args[0]));
+			List<Document> siResult = new ArrayList<Document>();
+			siIterable.into(siResult);
+			return toCFML(siResult);
+		}
+
+		// updateSearchIndex(name, definition)
+		if (methodName.equals("updateSearchIndex")) {
+			checkArgLength("updateSearchIndex", args, 2, 2);
+			coll.updateSearchIndex(caster.toString(args[0]), toDocument(args[1]));
+			return null;
+		}
+
+		// dropSearchIndex(name)
+		if (methodName.equals("dropSearchIndex")) {
+			checkArgLength("dropSearchIndex", args, 1, 1);
+			coll.dropSearchIndex(caster.toString(args[0]));
+			return null;
 		}
 
 		// getStats / stats
@@ -621,6 +689,7 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 		}
 
 		String functionNames = "aggregate,count,dataSize,distinct,drop,dropIndex,dropIndexes,createIndex,stats,getIndexes," +
+			"createSearchIndex,createSearchIndexes,listSearchIndexes,updateSearchIndex,dropSearchIndex," +
 			"getWriteConcern,find,findOne,findAndRemove,findAndModify,insert,insertMany,bulkWrite,remove,rename,save," +
 			"setWriteConcern,storageSize,totalIndexSize,update";
 		throw exp.createApplicationException("function " + methodName + " does not exist, existing functions are [" + functionNames + "]");
@@ -653,6 +722,13 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			__toDumpData("indexes", pageContext, maxlevel, dp),
 			__toDumpData(String.join(", ", idxNames), pageContext, maxlevel, dp));
 		return table;
+	}
+
+	/** Map a CFML type string ("search" or "vectorSearch") to the driver enum. */
+	private static SearchIndexType resolveSearchIndexType(String type) {
+		if (type != null && type.equalsIgnoreCase("vectorSearch"))
+			return SearchIndexType.vectorSearch();
+		return SearchIndexType.search(); // default: Atlas Search
 	}
 
 	private static boolean isUpdateOperatorDoc(Document doc) {
