@@ -671,6 +671,33 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		coll.drop();
 	}
 
+	public void function testDecimal128() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// Produce a Decimal128 value server-side via $convert so we don't need to
+		// create a Java object from CFML. The driver returns it as org.bson.types.Decimal128.
+		var results = coll.aggregate([
+			{"$limit": 1},
+			{"$project": {
+				"_id": 0,
+				"decVal": {"$convert": {"input": "9.99", "to": "decimal"}},
+				"large": {"$convert": {"input": "123456789012345.67", "to": "decimal"}}
+			}}
+		]).results();
+
+		$assert.isEqual(1, results.len());
+		var row = results[1];
+
+		// Decimal128 must arrive as a CFML numeric, not a raw Java object
+		$assert.typeOf("numeric", row.decVal,
+			"Decimal128 field should be converted to a CFML numeric");
+		$assert.isEqual(9.99, row.decVal);
+
+		$assert.typeOf("numeric", row.large,
+			"large Decimal128 field should also be a CFML numeric");
+		$assert.isEqual(123456789012345.67, row.large);
+	}
+
 	public void function testGroupAndDistinct() skip="isNotSupported" {
 		var coll = resetTestCollection();
 		$assert.isEqual(2, coll.distinct("grp").len());

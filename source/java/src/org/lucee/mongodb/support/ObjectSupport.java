@@ -45,6 +45,7 @@ import lucee.runtime.util.Decision;
 import lucee.runtime.util.Excepton;
 
 import org.bson.Document;
+import org.bson.types.Decimal128;
 import org.bson.types.ObjectId;
 import org.lucee.mongodb.AggregationOutputImpl;
 import org.lucee.mongodb.CommandResultImpl;
@@ -198,6 +199,15 @@ public class ObjectSupport {
 				arr.appendEL(toCFML(item));
 			}
 			return arr;
+		}
+		if (obj instanceof Decimal128) {
+			Decimal128 d128 = (Decimal128) obj;
+			// NaN and Infinity have no BigDecimal equivalent — return their string
+			// representation so they are at least visible rather than causing an exception
+			if (d128.isNaN() || d128.isInfinite()) return d128.toString();
+			// Use BigDecimal as the intermediate to preserve as much decimal precision
+			// as the CFML double type allows; consistent with bsonValueToJava()
+			return d128.bigDecimalValue().doubleValue();
 		}
 		if (obj instanceof Number && !(obj instanceof Double))
 			return CFMLEngineFactory.getInstance().getCastUtil().toDouble(obj, null);
