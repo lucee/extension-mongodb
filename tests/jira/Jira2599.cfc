@@ -608,6 +608,69 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.typeOf("numeric", coll.storageSize());		
 	}
 
+	public void function testCreateCollectionWithValidator() skip="isNotSupported" {
+		// JSON Schema validator — rejects documents that violate the schema
+		var coll = db.getCollection("test_validated");
+		coll.drop();
+
+		db.createCollection("test_validated", {
+			"validator": {
+				"$jsonSchema": {
+					"bsonType": "object",
+					"required": ["name", "age"],
+					"properties": {
+						"name": {"bsonType": "string"},
+						"age":  {"bsonType": "int",  "minimum": 0}
+					}
+				}
+			},
+			"validationLevel":  "strict",
+			"validationAction": "error"
+		});
+
+		// valid document should insert without error
+		coll.insert({"name": "Alice", "age": 30});
+		$assert.isEqual(1, coll.count());
+
+		// invalid document (missing required "age") should be rejected
+		var threw = false;
+		try {
+			coll.insert({"name": "Bob"});
+		} catch(any e) {
+			threw = true;
+		}
+		$assert.isTrue(threw, "validator should reject a document missing required field 'age'");
+		$assert.isEqual(1, coll.count(), "rejected insert must not change document count");
+
+		coll.drop();
+	}
+
+	public void function testCreateTimeSeriesCollection() skip="isNotSupported" {
+		var coll = db.getCollection("test_timeseries");
+		coll.drop();
+
+		db.createCollection("test_timeseries", {
+			"timeseries": {
+				"timeField":   "timestamp",
+				"metaField":   "sensor",
+				"granularity": "seconds"
+			},
+			"expireAfterSeconds": 86400
+		});
+
+		// verify the collection exists and can accept time series documents
+		coll = db.getCollection("test_timeseries");
+		coll.insert({"timestamp": now(), "sensor": "A", "temperature": 21.5});
+		$assert.isEqual(1, coll.count());
+
+		// verify the collection is listed and appears in the database
+		var names = db.getCollectionNames();
+		$assert.isTrue(names.findNoCase("test_timeseries") > 0,
+			"time series collection should appear in getCollectionNames()");
+
+		coll.drop();
+	}
+
 	public void function testGroupAndDistinct() skip="isNotSupported" {
 		var coll = resetTestCollection();
 		$assert.isEqual(2, coll.distinct("grp").len());

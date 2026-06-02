@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
@@ -141,8 +142,7 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 	public Object set(String key, Object value) throws PageException {
 		if (collectionExists(key))
 			throw exp.createExpressionException("there is already a collection [" + key + "]; drop it first");
-		Document opts = _toCreateOptions(value);
-		db.createCollection(key, opts != null ? toCreateCollectionOptions(opts) : null);
+		db.createCollection(key, buildCreateCollectionOptions(value));
 		return value;
 	}
 
@@ -182,12 +182,7 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 		if (methodName.equals("createCollection")) {
 			checkArgLength("createCollection", args, 1, 2);
 			String name = caster.toString(args[0]);
-			if (args.length > 1 && args[1] != null) {
-				Document opts = _toCreateOptions(args[1]);
-				db.createCollection(name, toCreateCollectionOptions(opts));
-			} else {
-				db.createCollection(name);
-			}
+			db.createCollection(name, buildCreateCollectionOptions(args.length > 1 ? args[1] : null));
 			return toCFML(new DBCollectionImpl(db.getCollection(name), db));
 		}
 		if (methodName.equals("dropDatabase")) {
@@ -263,26 +258,88 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 		throw new UnsupportedOperationException("named arguments are not supported yet!");
 	}
 
-	private Document _toCreateOptions(Object obj) throws PageException {
-		if (obj == null) return null;
-		Struct sct = caster.toStruct(obj, null);
-		if (sct == null) return null;
-		Document doc = new Document();
-		Boolean capped = caster.toBoolean(sct.get("capped", null), null);
-		if (capped != null) doc.put("capped", capped);
-		Integer size = caster.toInteger(sct.get("size", null), null);
-		if (size != null) doc.put("size", size);
-		Integer max = caster.toInteger(sct.get("max", null), null);
-		if (max != null) doc.put("max", max);
-		return doc;
-	}
-
-	private com.mongodb.client.model.CreateCollectionOptions toCreateCollectionOptions(Document opts) {
+	/**
+	 * Convert a CFML options struct to a fully-populated {@link CreateCollectionOptions}.
+	 *
+	 * Supported options:
+	 *   capped (boolean), size (long), max (long)            — capped collection
+	 *   validator (struct/document)                          — JSON Schema validator
+	 *   validationLevel  "off" | "moderate" | "strict"       — default: strict
+	 *   validationAction "warn" | "error"                    — default: error
+	 *   timeseries.timeField (string, required for TS)       — time series
+	 *   timeseries.metaField (string)
+	 *   timeseries.granularity "seconds" | "minutes" | "hours"
+	 *   expireAfterSeconds (long)                            — TTL
+	 */
+	private com.mongodb.client.model.CreateCollectionOptions buildCreateCollectionOptions(Object obj) throws PageException {
 		com.mongodb.client.model.CreateCollectionOptions cco = new com.mongodb.client.model.CreateCollectionOptions();
-		if (opts == null) return cco;
-		if (opts.containsKey("capped")) cco.capped(Boolean.TRUE.equals(opts.get("capped")));
-		if (opts.containsKey("size")) cco.sizeInBytes(((Number) opts.get("size")).longValue());
-		if (opts.containsKey("max")) cco.maxDocuments(((Number) opts.get("max")).longValue());
+		if (obj == null) return cco;
+		Struct sct = caster.toStruct(obj, null);
+		if (sct == null) return cco;
+
+		// --- capped collection ---
+		Boolean capped = caster.toBoolean(sct.get("capped", null), null);
+		if (capped != null) cco.capped(capped);
+		Integer size = caster.toInteger(sct.get("size", null), null);
+		if (size != null) cco.sizeInBytes(size.longValue());
+		Integer max = caster.toInteger(sct.get("max", null), null);
+		if (max != null) cco.maxDocuments(max.longValue());
+
+		// --- JSON Schema validator ---
+		Object validatorObj = sct.get("validator", null);
+		if (validatorObj != null) {
+			Document validatorDoc = toDocument(validatorObj, null);
+			if (validatorDoc != null) {
+				com.mongodb.client.model.ValidationOptions vo =
+					new com.mongodb.client.model.ValidationOptions().validator(validatorDoc);
+				String levelStr = caster.toString(sct.get("validationLevel", null), null);
+				if (levelStr != null) {
+					switch (levelStr.toLowerCase()) {
+						case "off":      vo.validationLevel(com.mongodb.client.model.ValidationLevel.OFF);      break;
+						case "moderate": vo.validationLevel(com.mongodb.client.model.ValidationLevel.MODERATE); break;
+						default:         vo.validationLevel(com.mongodb.client.model.ValidationLevel.STRICT);   break;
+					}
+				}
+				String actionStr = caster.toString(sct.get("validationAction", null), null);
+				if (actionStr != null) {
+					if ("warn".equalsIgnoreCase(actionStr))
+						vo.validationAction(com.mongodb.client.model.ValidationAction.WARN);
+					else
+						vo.validationAction(com.mongodb.client.model.ValidationAction.ERROR);
+				}
+				cco.validationOptions(vo);
+			}
+		}
+
+		// --- time series ---
+		Object tsObj = sct.get("timeseries", null);
+		if (tsObj != null) {
+			Struct tsSct = caster.toStruct(tsObj, null);
+			if (tsSct != null) {
+				String timeField = caster.toString(tsSct.get("timeField", null), null);
+				if (timeField != null) {
+					com.mongodb.client.model.TimeSeriesOptions tso =
+						new com.mongodb.client.model.TimeSeriesOptions(timeField);
+					String metaField = caster.toString(tsSct.get("metaField", null), null);
+					if (metaField != null) tso.metaField(metaField);
+					String gran = caster.toString(tsSct.get("granularity", null), null);
+					if (gran != null) {
+						switch (gran.toLowerCase()) {
+							case "minutes": tso.granularity(com.mongodb.client.model.TimeSeriesGranularity.MINUTES); break;
+							case "hours":   tso.granularity(com.mongodb.client.model.TimeSeriesGranularity.HOURS);   break;
+							default:        tso.granularity(com.mongodb.client.model.TimeSeriesGranularity.SECONDS); break;
+						}
+					}
+					cco.timeSeriesOptions(tso);
+				}
+			}
+		}
+
+		// --- TTL (works for both time series and standard collections) ---
+		Object expireObj = sct.get("expireAfterSeconds", null);
+		if (expireObj != null)
+			cco.expireAfter(caster.toLongValue(expireObj), TimeUnit.SECONDS);
+
 		return cco;
 	}
 
