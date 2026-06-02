@@ -167,6 +167,33 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.isEqual( "Six", docsFound.next().name );
 	}
 
+	public void function testCursorBatchSize() skip="isNotSupported" {
+		var coll = resetTestCollection(); // 5 documents
+
+		// batchSize() controls how many documents are fetched per server round-trip;
+		// it does NOT limit total results — all matching documents are still returned.
+		var docs = coll.find().batchSize(2).toArray();
+		$assert.isEqual(5, docs.len(),
+			"batchSize(2) should not limit total results from a 5-document collection");
+
+		// verify manual iteration also returns all documents
+		var cursor = coll.find().batchSize(2);
+		var count = 0;
+		while (cursor.hasNext()) {
+			cursor.next();
+			count++;
+		}
+		$assert.isEqual(5, count,
+			"manual iteration with batchSize(2) should visit all 5 documents");
+
+		// batchSize() must be chainable with other cursor methods
+		docs = coll.find().batchSize(2).sort(["_id": 1]).limit(3).toArray();
+		$assert.isEqual(3, docs.len(),
+			"batchSize + sort + limit should return only the limited count");
+		$assert.isEqual(1, docs[1]._id); // sort order preserved
+		$assert.isEqual(3, docs[3]._id);
+	}
+
 	public void function testProjection() skip="isNotSupported" {
 		var coll = resetTestCollection();
 
