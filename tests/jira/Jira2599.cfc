@@ -394,6 +394,44 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		coll.drop();
 	}
 
+	public void function testAggregateMerge() skip="isNotSupported" {
+		var source = resetTestCollection();               // 5 docs in "test"
+		var target = db.getCollection("test_merge_out");
+		target.drop();
+
+		// $merge writes matching documents to the target collection and
+		// produces no output — the returned cursor must be empty
+		var result = source.aggregate([
+			{"$match": {"grp": 1}},
+			{"$merge": {"into": "test_merge_out"}}
+		]);
+
+		// cursor must report no documents (write stage, nothing returned)
+		$assert.isFalse(result.hasNext(),
+			"$merge pipeline should return an empty cursor");
+		$assert.lengthOf(result.results(), 0,
+			"$merge pipeline results() should return an empty array");
+
+		// the write must actually have happened: grp=1 has 3 documents
+		$assert.isEqual(3, target.count(),
+			"$merge should have written 3 documents to the target collection");
+
+		// $out behaves the same way — replaces the entire target collection
+		var out = db.getCollection("test_out");
+		out.drop();
+		result = source.aggregate([
+			{"$match": {"grp": 2}},
+			{"$out": "test_out"}
+		]);
+		$assert.isFalse(result.hasNext(), "$out pipeline should return an empty cursor");
+		$assert.isEqual(2, out.count(),
+			"$out should have written 2 documents to the output collection");
+
+		// cleanup
+		target.drop();
+		out.drop();
+	}
+
 	public void function testAggregateResults() skip="isNotSupported" {
 		var coll = resetTestCollection();
 

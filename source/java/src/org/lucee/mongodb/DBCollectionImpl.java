@@ -136,6 +136,16 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 			var agg = coll.aggregate(pipeline);
 			if (allowDiskUse) agg = agg.allowDiskUse(true);
 			if (batchSize != null) agg = agg.batchSize(batchSize);
+
+			// $out and $merge are write stages: the driver requires toCollection() to
+			// execute them.  Calling iterator() instead silently skips the write and
+			// returns the pipeline's input documents — wrong on both counts.
+			Document lastStage = pipeline.get(pipeline.size() - 1);
+			if (lastStage.containsKey("$out") || lastStage.containsKey("$merge")) {
+				agg.toCollection();
+				return new AggregationOutputImpl(); // write executed; no documents returned
+			}
+
 			return toCFML(agg);
 		}
 

@@ -31,8 +31,20 @@ public class AggregationOutputImpl extends ObjectSupport {
 	private AggregateIterable<Document> iterable;
 	private MongoCursor<Document> cursor;
 
+	/** Normal constructor — wraps a live AggregateIterable for iteration. */
 	public AggregationOutputImpl(AggregateIterable<Document> iterable) {
 		this.iterable = iterable;
+	}
+
+	/**
+	 * Empty-result constructor used after a {@code $merge} or {@code $out} stage
+	 * has been executed via {@code toCollection()}.  Those stages write to a
+	 * collection and produce no output documents; this instance reports itself
+	 * as already exhausted so callers get an empty result without a second
+	 * round-trip to the server.
+	 */
+	public AggregationOutputImpl() {
+		this.iterable = null;
 	}
 
 	private MongoCursor<Document> getCursor() {
@@ -41,10 +53,12 @@ public class AggregationOutputImpl extends ObjectSupport {
 	}
 
 	public boolean hasNext() {
+		if (iterable == null) return false;
 		return getCursor().hasNext();
 	}
 
 	public Object next() {
+		if (iterable == null) throw new java.util.NoSuchElementException("aggregation produced no output documents");
 		return toCFML(getCursor().next());
 	}
 
@@ -61,7 +75,7 @@ public class AggregationOutputImpl extends ObjectSupport {
 	 * Returns {@code this} for chaining: {@code coll.aggregate([...]).batchSize(100).hasNext()}.
 	 */
 	public AggregationOutputImpl batchSize(int size) {
-		iterable = iterable.batchSize(size);
+		if (iterable != null) iterable = iterable.batchSize(size);
 		return this;
 	}
 
@@ -74,6 +88,7 @@ public class AggregationOutputImpl extends ObjectSupport {
 	}
 
 	public Object results() {
+		if (iterable == null) return toCFML(new ArrayList<Object>());
 		ArrayList<Object> rtn = new ArrayList<Object>();
 		for (Document doc : iterable) {
 			rtn.add(toCFML(doc));
