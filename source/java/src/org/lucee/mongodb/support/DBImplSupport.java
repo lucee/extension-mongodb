@@ -111,11 +111,13 @@ public abstract class DBImplSupport extends CollObsSupport {
 
 
 	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
-		DumpTable table = _toDumpTable("DB", pageContext, maxlevel, dp);
+		// Intentionally minimal: the _toDumpTable() path iterates keys() and calls
+		// get() on each result (a DBCollectionImpl), which previously cascaded into
+		// dumping every document in every collection.  Concrete subclasses override
+		// this with a safe, metadata-only implementation.
+		DumpTable table = new DumpTable("struct", "#339933", "#8e714e", "#000000");
+		table.setTitle("DB");
 		table.setComment("http://docs.mongodb.org/manual/reference/command/");
 		return table;
-
-
-
 	}
 }

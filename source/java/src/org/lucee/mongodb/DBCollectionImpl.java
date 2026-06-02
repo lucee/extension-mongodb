@@ -625,10 +625,23 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
 		DumpTable table = new DumpTable("struct", "#339933", "#8e714e", "#000000");
 		table.setTitle("DBCollection");
-		maxlevel--;
-		for (Document doc : coll.find()) {
-			table.appendRow(0, __toDumpData(toCFML(doc), pageContext, maxlevel, dp));
+		table.appendRow(1,
+			__toDumpData("namespace",     pageContext, maxlevel, dp),
+			__toDumpData(coll.getNamespace().getFullName(), pageContext, maxlevel, dp));
+		table.appendRow(1,
+			__toDumpData("documentCount", pageContext, maxlevel, dp),
+			__toDumpData(coll.countDocuments(), pageContext, maxlevel, dp));
+		table.appendRow(1,
+			__toDumpData("writeConcern",  pageContext, maxlevel, dp),
+			__toDumpData(coll.getWriteConcern().toString(), pageContext, maxlevel, dp));
+		List<String> idxNames = new ArrayList<String>();
+		for (Document idx : coll.listIndexes()) {
+			String name = idx.getString("name");
+			if (name != null) idxNames.add(name);
 		}
+		table.appendRow(1,
+			__toDumpData("indexes", pageContext, maxlevel, dp),
+			__toDumpData(String.join(", ", idxNames), pageContext, maxlevel, dp));
 		return table;
 	}
 

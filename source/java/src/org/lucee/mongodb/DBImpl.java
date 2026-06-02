@@ -9,6 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
+import lucee.runtime.dump.DumpData;
+import lucee.runtime.dump.DumpProperties;
+import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection;
 import lucee.runtime.type.Objects;
@@ -285,5 +288,22 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 
 	public MongoDatabase getDatabase() {
 		return db;
+	}
+
+	@Override
+	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
+		DumpTable table = new DumpTable("struct", "#339933", "#8e714e", "#000000");
+		table.setTitle("DB");
+		table.setComment("http://docs.mongodb.org/manual/reference/command/");
+		table.appendRow(1,
+			__toDumpData("name", pageContext, maxlevel, dp),
+			__toDumpData(db.getName(), pageContext, maxlevel, dp));
+		List<String> names = new ArrayList<String>();
+		db.listCollectionNames().into(names);
+		names.sort(null);
+		table.appendRow(1,
+			__toDumpData("collections", pageContext, maxlevel, dp),
+			__toDumpData(String.join(", ", names), pageContext, maxlevel, dp));
+		return table;
 	}
 }
