@@ -194,6 +194,27 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.isEqual(3, docs[3]._id);
 	}
 
+	public void function testAggregateBatchSize() skip="isNotSupported" {
+		var coll = resetTestCollection(); // 5 documents
+
+		// batchSize can be passed in the options struct to aggregate()
+		var results = coll.aggregate(
+			[{"$sort": {"_id": 1}}],
+			{"cursor": {"batchSize": 2}}
+		);
+		var count = 0;
+		while (results.hasNext()) { results.next(); count++; }
+		$assert.isEqual(5, count,
+			"aggregate with batchSize option should still return all documents");
+
+		// batchSize can also be called as a method on the returned cursor
+		results = coll.aggregate([{"$sort": {"_id": 1}}]).batchSize(2);
+		count = 0;
+		while (results.hasNext()) { results.next(); count++; }
+		$assert.isEqual(5, count,
+			"aggregate cursor batchSize() method should still return all documents");
+	}
+
 	public void function testProjection() skip="isNotSupported" {
 		var coll = resetTestCollection();
 

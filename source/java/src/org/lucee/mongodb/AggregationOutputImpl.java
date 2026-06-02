@@ -55,6 +55,16 @@ public class AggregationOutputImpl extends ObjectSupport {
 		}
 	}
 
+	/**
+	 * Set the number of documents to return per server round-trip.
+	 * Must be called before iteration begins.
+	 * Returns {@code this} for chaining: {@code coll.aggregate([...]).batchSize(100).hasNext()}.
+	 */
+	public AggregationOutputImpl batchSize(int size) {
+		iterable = iterable.batchSize(size);
+		return this;
+	}
+
 	public Object results() {
 		ArrayList<Object> rtn = new ArrayList<Object>();
 		for (Document doc : iterable) {
