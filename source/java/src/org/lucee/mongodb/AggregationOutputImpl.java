@@ -65,6 +65,14 @@ public class AggregationOutputImpl extends ObjectSupport {
 		return this;
 	}
 
+	/**
+	 * The driver does not expose a getBatchSize() getter on AggregateIterable.
+	 * Returns 0 as a safe default, consistent with DBCursorImpl.getBatchSize().
+	 */
+	public int getBatchSize() {
+		return 0;
+	}
+
 	public Object results() {
 		ArrayList<Object> rtn = new ArrayList<Object>();
 		for (Document doc : iterable) {
