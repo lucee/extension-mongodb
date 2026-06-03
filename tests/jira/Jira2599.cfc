@@ -215,6 +215,53 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 			"aggregate cursor batchSize() method should still return all documents");
 	}
 
+	public void function testCursorNumSeen() skip="isNotSupported" {
+		var coll = resetTestCollection(); // 5 documents
+
+		var cursor = coll.find().sort(["_id": 1]);
+
+		// before any iteration, numSeen() must be 0
+		$assert.isEqual(0, cursor.numSeen());
+
+		// curr() before first next() must be null
+		$assert.isNull(cursor.curr());
+
+		// iterate two documents
+		cursor.next();
+		$assert.isEqual(1, cursor.numSeen());
+		cursor.next();
+		$assert.isEqual(2, cursor.numSeen());
+
+		// curr() must return the last document returned by next()
+		var last = cursor.curr();
+		$assert.typeOf("struct", last);
+		$assert.isEqual(2, last._id); // second doc (_id=2) was the last next() call
+
+		// numSeen() keeps counting through full iteration
+		while (cursor.hasNext()) { cursor.next(); }
+		$assert.isEqual(5, cursor.numSeen());
+	}
+
+	public void function testCursorGetQuery() skip="isNotSupported" {
+		var coll = resetTestCollection();
+
+		// getQuery() returns the filter document passed to find()
+		var filter  = {"grp": 1};
+		var cursor  = coll.find(filter);
+		var query   = cursor.getQuery();
+		$assert.typeOf("struct", query);
+		$assert.isEqual(1, query.grp);
+
+		// find() with no filter returns an empty struct
+		var emptyCursor = coll.find();
+		$assert.typeOf("struct", emptyCursor.getQuery());
+
+		// getCollection() returns the collection the cursor was opened against
+		var collRef = cursor.getCollection();
+		$assert.typeOf("struct", collRef); // DBCollectionImpl presents as a struct
+		$assert.isEqual(3, collRef.count({"grp": 1}));
+	}
+
 	public void function testProjection() skip="isNotSupported" {
 		var coll = resetTestCollection();
 

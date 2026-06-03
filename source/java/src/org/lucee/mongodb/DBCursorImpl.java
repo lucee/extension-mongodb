@@ -45,6 +45,8 @@ public class DBCursorImpl extends DBCursorImplSupport {
 	private MongoCursor<Document> cursor;
 	private MongoCollection<Document> collection;
 	private Document filter;
+	private int numSeen = 0;
+	private Document lastDoc = null;
 
 	public DBCursorImpl(FindIterable<Document> iterable) {
 		this.iterable = iterable;
@@ -68,7 +70,9 @@ public class DBCursorImpl extends DBCursorImplSupport {
 
 	@Override
 	public Object next() {
-		return toCFML(cursor().next());
+		lastDoc = cursor().next();
+		numSeen++;
+		return toCFML(lastDoc);
 	}
 
 	@Override
@@ -186,16 +190,36 @@ public class DBCursorImpl extends DBCursorImplSupport {
 			checkArgLength("explain", args, 0, 0);
 			return toCFML(iterable.explain());
 		}
-		// Methods that were removed in 5.x
+		// numSeen — number of documents returned by next() so far
+		if (methodName.equals("numSeen")) {
+			checkArgLength("numSeen", args, 0, 0);
+			return toCFML(numSeen);
+		}
+		// curr — the document most recently returned by next(), or null before first call
+		if (methodName.equals("curr")) {
+			checkArgLength("curr", args, 0, 0);
+			return lastDoc != null ? toCFML(lastDoc) : null;
+		}
+		// getQuery — the filter document passed to find()
+		if (methodName.equals("getQuery")) {
+			checkArgLength("getQuery", args, 0, 0);
+			return toCFML(filter != null ? filter : new Document());
+		}
+		// getCollection — the collection this cursor was opened against
+		if (methodName.equals("getCollection")) {
+			checkArgLength("getCollection", args, 0, 0);
+			return collection != null ? toCFML(new DBCollectionImpl(collection, null)) : null;
+		}
+		// Methods that were genuinely removed in 5.x with no equivalent
 		if (methodName.equals("addOption") || methodName.equals("addSpecial") || methodName.equals("copy") ||
-			methodName.equals("curr") || methodName.equals("getCollection") || methodName.equals("getDecoderFactory") ||
-			methodName.equals("getKeysWanted") || methodName.equals("getOptions") || methodName.equals("getQuery") ||
-			methodName.equals("getReadPreference") || methodName.equals("numSeen") || methodName.equals("resetOptions") ||
-			methodName.equals("snapshot") || methodName.equals("setOptions")) {
+			methodName.equals("getDecoderFactory") || methodName.equals("getKeysWanted") ||
+			methodName.equals("getOptions") || methodName.equals("getReadPreference") ||
+			methodName.equals("resetOptions") || methodName.equals("snapshot") || methodName.equals("setOptions")) {
 			throw exp.createApplicationException("cursor." + methodName + "() was removed in MongoDB Java driver 5.x");
 		}
 
-		String supportedFunctions = "batchSize,limit,skip,sort,hint,hasNext,next,getCursorId,getServerAddress,toArray,close,iterator,getBatchSize,count,size,explain";
+		String supportedFunctions = "batchSize,limit,skip,sort,hint,hasNext,next,getCursorId,getServerAddress," +
+			"toArray,close,iterator,getBatchSize,count,size,explain,numSeen,curr,getQuery,getCollection";
 		throw exp.createExpressionException("function [" + methodName + "] is not supported, supported functions are [" + supportedFunctions + "]");
 	}
 
