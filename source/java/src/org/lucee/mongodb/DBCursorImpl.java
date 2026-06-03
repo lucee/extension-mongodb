@@ -135,7 +135,7 @@ public class DBCursorImpl extends DBCursorImplSupport {
 		}
 		if (methodName.equals("next")) {
 			checkArgLength("next", args, 0, 0);
-			return toCFML(cursor().next());
+			return next(); // delegates to Java next() which tracks numSeen and lastDoc
 		}
 		if (methodName.equals("getCursorId")) {
 			checkArgLength("getCursorId", args, 0, 0);
