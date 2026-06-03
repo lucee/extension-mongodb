@@ -224,7 +224,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.isEqual(0, cursor.numSeen());
 
 		// curr() before first next() must be null
-		$assert.isNull(cursor.curr());
+		$assert.isTrue(isNull(cursor.curr()), "curr() should be null before the first next() call");
 
 		// iterate two documents
 		cursor.next();
@@ -258,7 +258,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 
 		// getCollection() returns the collection the cursor was opened against
 		var collRef = cursor.getCollection();
-		$assert.typeOf("struct", collRef); // DBCollectionImpl presents as a struct
+		$assert.isTrue(!isNull(collRef), "getCollection() should return a non-null collection reference");
 		$assert.isEqual(3, collRef.count({"grp": 1}));
 	}
 
