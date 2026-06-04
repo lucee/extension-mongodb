@@ -239,7 +239,7 @@ Requirements: JDK 11+, Apache Ant.
 JAVA_HOME=/path/to/jdk11 ant -buildfile build.xml
 
 # output
-target/mongodb-extension-5.5.1.1.lex
+target/mongodb-extension-5.5.1.2.lex
 ```
 
 Install the `.lex` file via the Lucee Server Administrator (**Extensions → Applications**)

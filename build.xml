@@ -14,7 +14,7 @@
   <!-- Default values used when building directly with ant (not via Maven).
        Maven overrides these via maven-antrun-plugin <property> elements. -->
   <property name="filename"        value="mongodb-extension"/>
-  <property name="bundleversion"   value="5.5.1.1"/>
+  <property name="bundleversion"   value="5.5.1.2"/>
   <property name="bundlename"      value="org.lucee.mongodb.extension"/>
   <property name="id"              value="E6634E1A-4CC5-4839-A83C67549ECA8D5B"/>
   <property name="groupId"         value="org.lucee"/>

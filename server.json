@@ -6,7 +6,7 @@
         "LUCEE_ADMIN_PASSWORD":"webweb"
     },
     "scripts":{
-        "onServerInitialInstall":"server lucee-deploy target/mongodb-extension-5.5.1.1.lex"
+        "onServerInitialInstall":"server lucee-deploy target/mongodb-extension-5.5.1.2.lex"
     },
     "web":{
         "rules":[
