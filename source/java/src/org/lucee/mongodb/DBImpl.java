@@ -30,7 +30,7 @@ import com.mongodb.client.MongoDatabase;
 public class DBImpl extends DBImplSupport implements Collection, Objects {
 
 	private static final long serialVersionUID = -378132108333079775L;
-	private final MongoDatabase db;
+	private MongoDatabase db;
 	private final MongoClient client;
 	private static Map<String, MongoClient> clients = new ConcurrentHashMap<String, MongoClient>();
 
@@ -41,20 +41,12 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 
 	public static DBImpl getInstance(String dbName, String host, int port, boolean createNewClient) throws MongoException {
 		String key = host + ":" + port;
-		MongoClient client = createNewClient ? null : clients.get(key);
-		if (client == null) {
-			client = createClient(host, port);
-			clients.put(key, client);
-		}
+		MongoClient client = createNewClient ? createClient(host, port) : clients.computeIfAbsent(key, k -> createClient(host, port));
 		return new DBImpl(client.getDatabase(dbName), client);
 	}
 
 	public static DBImpl getInstanceByURI(String dbName, String uri) throws MongoException {
-		MongoClient client = clients.get(uri);
-		if (client == null) {
-			client = MongoClients.create(uri);
-			clients.put(uri, client);
-		}
+		MongoClient client = clients.computeIfAbsent(uri, MongoClients::create);
 		return new DBImpl(client.getDatabase(dbName), client);
 	}
 

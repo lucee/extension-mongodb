@@ -1,4 +1,7 @@
 Manifest-Version: 1.0
 Export-Package: org.lucee.mongodb
 Bundle-ManifestVersion: 2
-Require-Bundle: org.mongodb.bson;bundle-version=5.5.1,org.mongodb.bson-record-codec;bundle-version=5.5.1,org.mongodb.driver-core;bundle-version=5.5.1,org.mongodb.driver-sync;bundle-version=5.5.1
+Require-Bundle: org.mongodb.bson;bundle-version=5.5.1,
+ org.mongodb.bson-record-codec;bundle-version=5.5.1,
+ org.mongodb.driver-core;bundle-version=5.5.1,
+ org.mongodb.driver-sync;bundle-version=5.5.1

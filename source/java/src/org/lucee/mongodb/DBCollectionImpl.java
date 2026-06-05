@@ -633,8 +633,8 @@ public class DBCollectionImpl extends DBCollectionImplSupport {
 				Document filter = new Document("_id", doc.get("_id"));
 				UpdateResult ur = coll.replaceOne(filter, doc, new com.mongodb.client.model.ReplaceOptions().upsert(true));
 				result.put("acknowledged", ur.wasAcknowledged());
-				result.put("n", ur.wasAcknowledged() ? ur.getMatchedCount() + ur.getModifiedCount() : 0);
-				result.put("updatedExisting", ur.getMatchedCount() > 0);
+				result.put("n", ur.wasAcknowledged() ? (ur.getUpsertedId() != null ? 1L : ur.getMatchedCount()) : 0L);
+				result.put("updatedExisting", ur.wasAcknowledged() && ur.getMatchedCount() > 0);
 			} else {
 				InsertOneResult ir = coll.insertOne(doc);
 				result.put("acknowledged", ir.wasAcknowledged());
