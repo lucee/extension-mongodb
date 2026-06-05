@@ -224,7 +224,8 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 		}
 		if (methodName.equals("setWriteConcern")) {
 			checkArgLength("setWriteConcern", args, 1, 1);
-			// WriteConcern is immutable on MongoDatabase; would need to swap the field
+			WriteConcern wc = toWriteConcern(args[0], null);
+			if (wc != null) db = db.withWriteConcern(wc);
 			return null;
 		}
 		// Removed methods — throw informative errors
