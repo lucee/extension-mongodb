@@ -120,7 +120,7 @@ public class DBImpl extends DBImplSupport implements Collection, Objects {
 
 	@Override
 	public Object get(String key) throws PageException {
-		if (collectionExists(key)) return toCFML(db.getCollection(key));
+		if (collectionExists(key)) return new DBCollectionImpl(db.getCollection(key), db);
 		throw exp.createExpressionException("key [" + key + "] doesn't exist");
 	}
 
