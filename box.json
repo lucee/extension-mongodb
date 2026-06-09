@@ -1,6 +1,6 @@
 {
     "name":"MongoDB Extension",
-    "version":"3.12.8",
+    "version":"5.1.1.2",
     "author":"",
     "location":"",
     "directory":"",
@@ -15,7 +15,7 @@
     "bugs":"",
     "slug":"extension-mongodb",
     "shortDescription":"MongoDB Extension for Lucee",
-    "description":"This extension allows you to use MongoDB directly in your code or as a Cache (Experimental). MongoDB (from humongous) is a cross-platform document-oriented database. Classified as a NoSQL database, MongoDB eschews the traditional table-based relational database structure in favor of JSON-like documents with dynamic schemas (MongoDB calls the format BSON), making the integration of data in certain types of applications easier and faster.",
+    "description":"This extension allows you to use MongoDB directly in your code or as a Cache. MongoDB (from humongous) is a cross-platform document-oriented database. Classified as a NoSQL database, MongoDB eschews the traditional table-based relational database structure in favor of JSON-like documents with dynamic schemas (MongoDB calls the format BSON), making the integration of data in certain types of applications easier and faster.",
     "instructions":"",
     "changelog":"",
     "type":"",
