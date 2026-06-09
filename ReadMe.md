@@ -194,6 +194,97 @@ var indexes = coll.getIndexes(); // array of structs
 
 ---
 
+## Atlas Search & Vector Search Indexes
+
+> **Requires MongoDB Atlas.** Search indexes are managed through the Atlas Data API and
+> are not available on standalone or self-hosted MongoDB deployments.
+
+The extension exposes the full search-index management surface of the MongoDB Java driver:
+
+```cfml
+// --- Atlas Search index (full-text) ---
+
+// create with an inline mapping definition
+var indexName = coll.createSearchIndex("my_search_index", {
+    "mappings": {
+        "dynamic": true
+    }
+});
+
+// create with an explicit type (defaults to "search" if omitted)
+var indexName = coll.createSearchIndex("my_search_index", {
+    "mappings": {
+        "dynamic": false,
+        "fields": {
+            "title":   {"type": "string"},
+            "content": {"type": "string"}
+        }
+    }
+}, "search");
+
+// --- Atlas Vector Search index ---
+
+var indexName = coll.createSearchIndex("my_vector_index", {
+    "fields": [
+        {
+            "type":          "vector",
+            "path":          "embedding",
+            "numDimensions": 1536,
+            "similarity":    "cosine"
+        }
+    ]
+}, "vectorSearch");
+
+// --- Create multiple indexes in one call ---
+
+var names = coll.createSearchIndexes([
+    {
+        "name": "text_index",
+        "type": "search",
+        "definition": {"mappings": {"dynamic": true}}
+    },
+    {
+        "name": "vector_index",
+        "type": "vectorSearch",
+        "definition": {
+            "fields": [{"type": "vector", "path": "embedding", "numDimensions": 1536, "similarity": "cosine"}]
+        }
+    }
+]);
+
+// --- List search indexes ---
+
+// all search indexes on the collection
+var allIndexes = coll.listSearchIndexes();           // array of structs
+
+// one specific index by name
+var idx = coll.listSearchIndexes("my_search_index"); // single struct (or empty array)
+
+// --- Update an existing search index ---
+
+coll.updateSearchIndex("my_search_index", {
+    "mappings": {
+        "dynamic": false,
+        "fields": {
+            "title":   {"type": "string"},
+            "content": {"type": "string"},
+            "author":  {"type": "string"}
+        }
+    }
+});
+
+// --- Drop a search index ---
+
+coll.dropSearchIndex("my_search_index");
+```
+
+Search index builds are **asynchronous** — `createSearchIndex()` returns the index name
+immediately, but the index may not be queryable until Atlas has finished building it.
+Poll `listSearchIndexes()` and check the `status` field (`"READY"`) before issuing
+`$search` or `$vectorSearch` queries if you need to wait for readiness.
+
+---
+
 ## Caching
 
 The extension can be used as a Lucee cache provider backed by MongoDB. Configure it in
