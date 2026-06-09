@@ -11,6 +11,20 @@
   <property name="temp" location="temp"/>
   <property name="dist"  location="target"/>
 
+  <!-- Default values used when building directly with ant (not via Maven).
+       Maven overrides these via maven-antrun-plugin <property> elements. -->
+  <property name="filename"        value="mongodb-extension"/>
+  <property name="bundleversion"   value="5.5.1.2"/>
+  <property name="bundlename"      value="org.lucee.mongodb.extension"/>
+  <property name="id"              value="E6634E1A-4CC5-4839-A83C67549ECA8D5B"/>
+  <property name="groupId"         value="org.lucee"/>
+  <property name="artifactId"      value="mongodb-extension"/>
+  <property name="label"           value="MongoDB Datasource and Cache"/>
+  <property name="class"           value="org.lucee.mongodb.cache.MongoDBCache"/>
+  <property name="luceeCoreVersion" value="5.0.0.150"/>
+  <property name="releaseType"     value="server"/>
+  <property name="description"     value="MongoDB Cache and Datasource implementation for Lucee"/>
+
   <path id="classpath">
     <!-- use the loader project directly <pathelement location="${luceeLoader}" /> -->
     <fileset dir="${lib}">

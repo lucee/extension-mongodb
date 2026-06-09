@@ -25,56 +25,66 @@ import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Struct;
 
-import com.mongodb.CommandResult;
+import org.bson.Document;
+
+import com.mongodb.MongoCommandException;
 
 public class CommandResultImpl extends DBObjectImpl {
 
-	private CommandResult cr;
+	public CommandResultImpl(Document doc) {
+		super(doc);
+	}
 
-	public CommandResultImpl(CommandResult cr) {
-		super(cr);
-		this.cr=cr;
+	public Document getDocument() {
+		return super.getDocument();
+	}
+
+	private boolean isOk() {
+		Object ok = getDocument().get("ok");
+		if (ok instanceof Number) return ((Number) ok).doubleValue() == 1.0;
+		return Boolean.TRUE.equals(ok);
 	}
 
 	@Override
 	public Object call(PageContext pc, Key methodName, Object[] args) throws PageException {
-		// getErrorMessage();
-		if(methodName.equals("getErrorMessage")) {
-			checkArgLength("getErrorMessage",args,0,0);
-			return toCFML(cr.getErrorMessage());
+		if (methodName.equals("getErrorMessage")) {
+			checkArgLength("getErrorMessage", args, 0, 0);
+			if (isOk()) return toCFML(null);
+			return toCFML(getDocument().getString("errmsg"));
 		}
-		// getException();
-		if(methodName.equals("getException")) {
-			checkArgLength("getException",args,0,0);
-			return toCFML(cr.getException());
+		if (methodName.equals("getException")) {
+			checkArgLength("getException", args, 0, 0);
+			if (isOk()) return toCFML(null);
+			String errmsg = getDocument().getString("errmsg");
+			int code = getDocument().getInteger("code", 0);
+			return toCFML(new MongoCommandException(
+				new org.bson.BsonDocument("$err", new org.bson.BsonString(errmsg != null ? errmsg : "unknown")), null));
 		}
-		// ok();
-		if(methodName.equals("ok")) {
-			checkArgLength("ok",args,0,0);
-			return toCFML(cr.ok());
+		if (methodName.equals("ok")) {
+			checkArgLength("ok", args, 0, 0);
+			return toCFML(isOk());
 		}
-		// throwOnError();
-		if(methodName.equals("throwOnError")) {
-			checkArgLength("throwOnError",args,0,0);
-			cr.throwOnError();
+		if (methodName.equals("throwOnError")) {
+			checkArgLength("throwOnError", args, 0, 0);
+			if (!isOk()) {
+				String errmsg = getDocument().getString("errmsg");
+				throw exp.createApplicationException("MongoDB command failed: " + (errmsg != null ? errmsg : "unknown error"));
+			}
 			return null;
 		}
 		return super.call(pc, methodName, args);
 	}
 
 	@Override
-	public Object callWithNamedValues(PageContext pc, Key methodName,Struct args) throws PageException {
-		if(args.isEmpty()) return call(pc, methodName, new Object[0]);
+	public Object callWithNamedValues(PageContext pc, Key methodName, Struct args) throws PageException {
+		if (args.isEmpty()) return call(pc, methodName, new Object[0]);
 		return super.callWithNamedValues(pc, methodName, args);
 	}
 
 	@Override
 	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
-		DumpTable dt= (DumpTable) super.toDumpData(pageContext, maxlevel, dp);
+		DumpTable dt = (DumpTable) super.toDumpData(pageContext, maxlevel, dp);
 		dt.setTitle("CommandResult");
 		return dt;
 	}
-
-
-
 }

@@ -95,7 +95,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		admin 
 			action="updateCacheConnection"
 			type="web"
-			password="webweb"			
+			password="#request.webadminpassword#"			
 			default="object"
 			name="MongoDBTestCache" 
 			class="#request.cache.mongodb.class#" 
@@ -107,7 +107,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		admin 
 			action="removeCacheConnection"
 			type="web"
-			password="webweb"
+			password="#request.webadminpassword#"
 			name="MongoDBTestCache";			
 	}
 	

@@ -5,171 +5,144 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import lucee.loader.engine.CFMLEngineFactory;
 import lucee.loader.util.Util;
 import lucee.runtime.PageContext;
+import lucee.runtime.dump.DumpData;
+import lucee.runtime.dump.DumpProperties;
+import lucee.runtime.dump.DumpTable;
 import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection;
 import lucee.runtime.type.Objects;
 import lucee.runtime.type.Struct;
 
+import org.bson.Document;
 import org.lucee.mongodb.support.DBImplSupport;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.WriteConcern;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoDatabase;
 
-public class DBImpl extends DBImplSupport implements Collection,Objects {
+public class DBImpl extends DBImplSupport implements Collection, Objects {
 
 	private static final long serialVersionUID = -378132108333079775L;
-	private final DB db;
-	private static Map<String,MongoClient> clients=new ConcurrentHashMap<String, MongoClient>();
+	private MongoDatabase db;
+	private final MongoClient client;
+	private static Map<String, MongoClient> clients = new ConcurrentHashMap<String, MongoClient>();
 
-	public DBImpl(DB db){
-		this.db=db;
+	public DBImpl(MongoDatabase db, MongoClient client) {
+		this.db = db;
+		this.client = client;
 	}
 
-	public static DBImpl getInstance(String dbName,String host, int port, boolean createNewClient) throws MongoException{
-		String key=host+":"+port;
-
-		MongoClient client = createNewClient?null:clients.get(key);
-		if(client==null) {
-			 client = createClient(host,port);
-			 clients.put(key, client);
-		}
-		return new DBImpl(client.getDB(dbName));
+	public static DBImpl getInstance(String dbName, String host, int port, boolean createNewClient) throws MongoException {
+		String key = host + ":" + port;
+		MongoClient client = createNewClient ? createClient(host, port) : clients.computeIfAbsent(key, k -> createClient(host, port));
+		return new DBImpl(client.getDatabase(dbName), client);
 	}
 
-	public static DBImpl getInstanceByURI(String dbName,String uri) throws MongoException{
-		MongoClient client = new MongoClient(new MongoClientURI(uri));
-		return new DBImpl(client.getDB(dbName));
+	public static DBImpl getInstanceByURI(String dbName, String uri) throws MongoException {
+		MongoClient client = clients.computeIfAbsent(uri, MongoClients::create);
+		return new DBImpl(client.getDatabase(dbName), client);
 	}
-
 
 	private static MongoClient createClient(String host, int port) throws MongoException {
-		boolean hasHost=!Util.isEmpty(host);
-		boolean hasPort=port>0;
-
-		if(!hasHost && !hasPort)return new MongoClient();
-		else if(!hasPort)return new MongoClient(host);
-		else if(!hasHost)return new MongoClient("localhost",port);
-		return new MongoClient(host,port);
+		boolean hasHost = !Util.isEmpty(host);
+		boolean hasPort = port > 0;
+		if (!hasHost && !hasPort) return MongoClients.create();
+		String uri = "mongodb://" + (hasHost ? host : "localhost") + (hasPort ? ":" + port : "");
+		return MongoClients.create(uri);
 	}
 
-	public void test(){
-		keys();
-		toDumpData(CFMLEngineFactory.getInstance().getThreadPageContext(), -1, null);
+	private boolean collectionExists(String name) {
+		for (String n : db.listCollectionNames()) {
+			if (n.equals(name)) return true;
+		}
+		return false;
 	}
-
 
 	@Override
 	public Iterator<String> keysAsStringIterator() {
-		return db.getCollectionNames().iterator();
+		List<String> names = new ArrayList<String>();
+		db.listCollectionNames().into(names);
+		return names.iterator();
 	}
 
 	@Override
 	public Iterator<Key> keyIterator() {
-		return new KeyIterator(caster,db.getCollectionNames().iterator());
+		return new KeyIterator(caster, keysAsStringIterator());
 	}
-
-	/*public Iterator<Object> valueIterator() {
-		return new ValueIterator(db, db.getCollectionNames().iterator());
-	}
-
-	public Iterator<Entry<Key, Object>> entryIterator() {
-		return new EntryIterator(caster,db, this, db.getCollectionNames().iterator());
-	}*/
 
 	@Override
 	public int size() {
-		return db.getCollectionNames().size();
+		List<String> names = new ArrayList<String>();
+		db.listCollectionNames().into(names);
+		return names.size();
 	}
 
 	@Override
 	public Key[] keys() {
-		Iterator<String> it = db.getCollectionNames().iterator();
-		List<Key> list=new ArrayList<Key>();
-		while(it.hasNext()){
-			list.add(caster.toKey(it.next(),null));
+		List<Key> list = new ArrayList<Key>();
+		for (String name : db.listCollectionNames()) {
+			list.add(caster.toKey(name, null));
 		}
 		return list.toArray(new Key[list.size()]);
 	}
 
 	@Override
 	public Object remove(Key key) throws PageException {
-		if(!db.collectionExists(key.getString()))
-			throw exp.createExpressionException("can't remove DBCollection with key ["+key+"], key doesn't exist");
-
-		DBCollection coll = db.getCollection(key.getString());
-		coll.drop();
-		return toCFML(coll);
+		if (!collectionExists(key.getString()))
+			throw exp.createExpressionException("can't remove collection [" + key + "], key doesn't exist");
+		DBCollectionImpl c = new DBCollectionImpl(db.getCollection(key.getString()), db);
+		c.call(null, creator.createKey("drop"), new Object[0]);
+		return toCFML(c);
 	}
 
 	@Override
 	public Object removeEL(Key key) {
-		try {
-			return remove(key);
-		} catch (PageException e) {
-			return null;
-		}
+		try { return remove(key); } catch (PageException e) { return null; }
 	}
 
-	// TODO was not existing in 4.5s @Override
 	public Object remove(Key key, Object defaultValue) {
-		try {
-			return remove(key);
-		} catch (PageException e) {
-			return defaultValue;
-		}
+		try { return remove(key); } catch (PageException e) { return defaultValue; }
 	}
 
 	@Override
 	public void clear() {
-		Iterator<Key> it = keyIterator();
-		Key k;
-		DBCollection coll;
-		while(it.hasNext()){
-			k=it.next();
-			coll = db.getCollection(k.getString());
-			coll.drop();
+		for (String name : db.listCollectionNames()) {
+			db.getCollection(name).drop();
 		}
 	}
 
 	@Override
 	public Object get(String key) throws PageException {
-		if(db.collectionExists(key)) return toCFML(db.getCollection(key));
-		throw exp.createExpressionException("key ["+key+"] doesn't exist ");
+		if (collectionExists(key)) return new DBCollectionImpl(db.getCollection(key), db);
+		throw exp.createExpressionException("key [" + key + "] doesn't exist");
 	}
 
 	@Override
 	public Object get(String key, Object defaultValue) {
-		if(db.collectionExists(key)) return toCFML(db.getCollection(key));
+		if (collectionExists(key)) return new DBCollectionImpl(db.getCollection(key), db);
 		return defaultValue;
 	}
 
 	@Override
 	public Object set(String key, Object value) throws PageException {
-		if(db.collectionExists(key)) {
-			throw exp.createExpressionException("there is already a collection with name ["+key+"], you have to remove this collection first by calling the method \"drop()\" for example");
-			//DBCollection coll = db.getCollection(key);
-			//coll.drop();
-		}
-		db.createCollection(key, _toDBObject(value));
+		if (collectionExists(key))
+			throw exp.createExpressionException("there is already a collection [" + key + "]; drop it first");
+		db.createCollection(key, buildCreateCollectionOptions(value));
 		return value;
 	}
 
 	@Override
 	public Object setEL(String key, Object value) {
-		try {
-			return set(key, value);
+		try { return set(key, value); } catch (Throwable t) {
+			if (t instanceof ThreadDeath) throw (ThreadDeath) t;
 		}
-		catch(Throwable t) {if(t instanceof ThreadDeath) throw (ThreadDeath)t;}
 		return value;
 	}
 
@@ -180,193 +153,207 @@ public class DBImpl extends DBImplSupport implements Collection,Objects {
 
 	@Override
 	public boolean containsKey(String key) {
-		return db.collectionExists(key);
+		return collectionExists(key);
 	}
 
 	@Override
 	public Object call(PageContext pc, Key methodName, Object[] args) throws PageException {
 
-		// db.addOptions(options);
-		if(methodName.equals("addOption")) {
-			checkArgLength("addOption",args,1,1);
-			db.addOption(caster.toIntValue(args[0]));
+		if (methodName.equals("collectionExists")) {
+			checkArgLength("collectionExists", args, 1, 1);
+			return toCFML(collectionExists(caster.toString(args[0])));
+		}
+		if (methodName.equals("command") || methodName.equals("runCommand")) {
+			checkArgLength("command", args, 1, 1);
+			Document dbo = toDocument(args[0], null);
+			Document result;
+			if (dbo != null) result = db.runCommand(dbo);
+			else result = db.runCommand(new Document(caster.toString(args[0]), 1));
+			return new CommandResultImpl(result);
+		}
+		if (methodName.equals("createCollection")) {
+			checkArgLength("createCollection", args, 1, 2);
+			String name = caster.toString(args[0]);
+			db.createCollection(name, buildCreateCollectionOptions(args.length > 1 ? args[1] : null));
+			return toCFML(new DBCollectionImpl(db.getCollection(name), db));
+		}
+		if (methodName.equals("dropDatabase")) {
+			checkArgLength("dropDatabase", args, 0, 0);
+			db.drop();
 			return null;
 		}
-		// db.addUser(username, password[, readOnly])
-		else if(methodName.equals("addUser")) {
-			checkArgLength("addUser",args,2,3);
-			return toCFML(db.addUser(
-				caster.toString(args[0]),
-				caster.toString(args[1]).toCharArray(), // TODO is this .toCharArray() valid?
-				args.length==2?false:caster.toBooleanValue(args[2])
-			));
+		if (methodName.equals("getCollection")) {
+			checkArgLength("getCollection", args, 1, 1);
+			return toCFML(new DBCollectionImpl(db.getCollection(caster.toString(args[0])), db));
 		}
-		// collectionExists(boolean)
-		else if(methodName.equals("collectionExists")) {
-			checkArgLength("collectionExists",args,1,1);
-			return toCFML(db.collectionExists(caster.toString(args[0])));
+		if (methodName.equals("getCollectionFromString") || methodName.equals("getCollectionNames")) {
+			if (methodName.equals("getCollectionNames")) {
+				checkArgLength("getCollectionNames", args, 0, 0);
+				List<String> names = new ArrayList<String>();
+				db.listCollectionNames().into(names);
+				return toCFML(names);
+			}
+			checkArgLength("getCollectionFromString", args, 1, 1);
+			return toCFML(new DBCollectionImpl(db.getCollection(caster.toString(args[0])), db));
 		}
-		// command
-		else if(methodName.equals("command")) {
-			checkArgLength("command",args,1,1);
-			DBObject dbo = toDBObject(args[0],null);
-			if(dbo!=null)return toCFML(db.command(dbo));
-			return toCFML(db.command(caster.toString(args[0])));
+		if (methodName.equals("getMongo")) {
+			checkArgLength("getMongo", args, 0, 0);
+			return toCFML(client != null ? client.toString() : null);
 		}
-
-		// db.createCollection(name[, {capped: <boolean>, size: <value>, max <bytes>}])
-		else if(methodName.equals("createCollection")) {
-			checkArgLength("createCollection",args,1,2);
-			if(args[1]==null)args[1]=new BasicDBObject();
-			return toCFML(db.createCollection(
-					caster.toString(args[0]),
-					_toDBObject(args[1])
-				));
-		}
-		// db.dropDatabase()
-		else if(methodName.equals("dropDatabase")) {
-			checkArgLength("dropDatabase",args,0,0);
-			db.dropDatabase();
-			return null;
-		}
-		// db.eval(function, arguments)
-		else if(methodName.equals("eval")) {
-			checkArgLength("eval",args,1,2);
-			return toCFML(db.eval(
-					caster.toString(args[0]),
-					toNativeMongoArray(args[1])
-				));
-		}
-		// db.getCollection(name)
-		else if(methodName.equals("getCollection")) {
-			checkArgLength("getCollection",args,1,1);
-			return toCFML(db.getCollection(caster.toString(args[0])));
-		}
-		// getCollectionFromString(name)
-		else if(methodName.equals("getCollectionFromString")) {
-			checkArgLength("getCollectionFromString",args,1,1);
-			return toCFML(db.getCollectionFromString(caster.toString(args[0])));
-		}
-		// db.getCollectionNames()
-		else if(methodName.equals("getCollectionNames")) {
-			checkArgLength("getCollectionNames",args,0,0);
-			return toCFML(db.getCollectionNames());
-		}
-		//  d.getMongo()
-		else if(methodName.equals("getMongo")) {
-			checkArgLength("getMongo",args,0,0);
-			return toCFML(db.getMongo());
-		}
-		// db.getName()
-		else if(methodName.equals("getName")) {
-			checkArgLength("getName",args,0,0);
+		if (methodName.equals("getName")) {
+			checkArgLength("getName", args, 0, 0);
 			return toCFML(db.getName());
 		}
-		// db.getOptions()
-		else if(methodName.equals("getOptions")) {
-			checkArgLength("getOptions",args,0,0);
-			return toCFML(db.getOptions());
+		if (methodName.equals("getReadPreference")) {
+			checkArgLength("getReadPreference", args, 0, 0);
+			return toCFML(db.getReadPreference().toString());
 		}
-		// db.getReadPreference()
-		else if(methodName.equals("getReadPreference")) {
-			checkArgLength("getReadPreference",args,0,0);
-			return toCFML(db.getReadPreference());
+		if (methodName.equals("getSisterDB") || methodName.equals("getSiblingDB")) {
+			checkArgLength(methodName.getString(), args, 1, 1);
+			if (client == null)
+				throw exp.createApplicationException(methodName + "() requires a MongoClient reference; use MongoDbConnect() with a URI");
+			return toCFML(new DBImpl(client.getDatabase(caster.toString(args[0])), client));
 		}
-		// db.getSisterDB(name)
-		else if(methodName.equals("getSisterDB")) {
-			checkArgLength("getSisterDB",args,1,1);
-			return toCFML(db.getSisterDB(caster.toString(args[0])));
+		if (methodName.equals("getStats")) {
+			checkArgLength("getStats", args, 0, 0);
+			return new CommandResultImpl(db.runCommand(new Document("dbStats", 1)));
 		}
-		// db.getStats()
-		else if(methodName.equals("getStats")) {
-			checkArgLength("getStats",args,0,0);
-			return toCFML(db.getStats());
+		if (methodName.equals("getWriteConcern")) {
+			checkArgLength("getWriteConcern", args, 0, 0);
+			return new WriteConcernImpl(db.getWriteConcern());
 		}
-		// db.getWriteConcern()
-		else if(methodName.equals("getWriteConcern")) {
-			checkArgLength("getWriteConcern",args,0,0);
-			return toCFML(db.getWriteConcern());
-		}
-		// db.removeUser(username)
-		else if(methodName.equals("removeUser")) {
-			checkArgLength("removeUser",args,1,1);
-			return toCFML(db.removeUser(caster.toString(args[0])));
-		}
-		// db.resetOptions()
-		else if(methodName.equals("resetOptions")) {
-			checkArgLength("resetOptions",args,0,0);
-			db.resetOptions();
+		if (methodName.equals("setWriteConcern")) {
+			checkArgLength("setWriteConcern", args, 1, 1);
+			WriteConcern wc = toWriteConcern(args[0], null);
+			if (wc != null) db = db.withWriteConcern(wc);
 			return null;
 		}
-		// db.setOptions(options)
-		else if(methodName.equals("setOptions")) {
-			checkArgLength("setOptions",args,1,1);
-			db.setOptions(caster.toIntValue(args[0]));
-			return null;
+		// Removed methods — throw informative errors
+		if (methodName.equals("addUser") || methodName.equals("removeUser")) {
+			throw exp.createApplicationException(methodName + "() was removed from the MongoDB Java driver 5.x. Manage users via the MongoDB shell or admin commands.");
 		}
-		// db.setWriteConcern()
-		else if(methodName.equals("setWriteConcern")) {
-			checkArgLength("setWriteConcern",args,1,1);
-			WriteConcern wc = WriteConcern.valueOf(caster.toString(args[0]));
-			if (wc != null) {
-				db.setWriteConcern(wc);
-			}
-			return null;
+		if (methodName.equals("eval")) {
+			throw exp.createApplicationException("eval() was removed from MongoDB 4.2+. Use aggregation pipelines instead.");
+		}
+		if (methodName.equals("addOption") || methodName.equals("getOptions") ||
+			methodName.equals("setOptions") || methodName.equals("resetOptions")) {
+			throw exp.createApplicationException(methodName + "() was removed from the MongoDB Java driver 5.x.");
 		}
 
-		String supportedFunctions=
-		"addOption,addUser,collectionExists,command,createCollection,dropDatabase,eval," +
-		"getCollection,getCollectionFromString,getCollectionNames,getMongo,getName,getOptions,getReadPreference," +
-		"getSisterDB,getStats,getWriteConcern,removeUser" +
-		"resetOptions,setOptions,setWriteConcern";
-
-		throw exp.createExpressionException("function ["+methodName+"] is not supported, supported functions are ["+supportedFunctions+"]");
-
-
-		// TODO cloneDatabase,copyDatabase,currentOp, commandHelp,fsyncLock,getLastErrorObj,getProfilingLevel,getProfilingStatus
-		// getReplicationInfo,getSiblingDB,killOp(),db.listCommands(),db.loadServerScripts(),db.logout(),db.printCollectionStats()
-		// printReplicationInfo,printShardingStatus,printSlaveReplicationInfo,repairDatabase,runCommand,serverBuildInfo
-
-		// TODO setReadPreference
+		String supportedFunctions = "collectionExists,command,createCollection,dropDatabase,getCollection," +
+			"getCollectionFromString,getCollectionNames,getMongo,getName,getReadPreference,getSisterDB,getStats,getWriteConcern,setWriteConcern";
+		throw exp.createExpressionException("function [" + methodName + "] is not supported, supported functions are [" + supportedFunctions + "]");
 	}
 
 	@Override
 	public Object callWithNamedValues(PageContext pc, Key methodName, Struct args) throws PageException {
-		if(args.isEmpty()) return call(pc, methodName, new Object[0]);
-
+		if (args.isEmpty()) return call(pc, methodName, new Object[0]);
 		throw new UnsupportedOperationException("named arguments are not supported yet!");
 	}
 
+	/**
+	 * Convert a CFML options struct to a fully-populated {@link CreateCollectionOptions}.
+	 *
+	 * Supported options:
+	 *   capped (boolean), size (long), max (long)            — capped collection
+	 *   validator (struct/document)                          — JSON Schema validator
+	 *   validationLevel  "off" | "moderate" | "strict"       — default: strict
+	 *   validationAction "warn" | "error"                    — default: error
+	 *   timeseries.timeField (string, required for TS)       — time series
+	 *   timeseries.metaField (string)
+	 *   timeseries.granularity "seconds" | "minutes" | "hours"
+	 *   expireAfterSeconds (long)                            — TTL
+	 */
+	private com.mongodb.client.model.CreateCollectionOptions buildCreateCollectionOptions(Object obj) throws PageException {
+		com.mongodb.client.model.CreateCollectionOptions cco = new com.mongodb.client.model.CreateCollectionOptions();
+		if (obj == null) return cco;
+		Struct sct = caster.toStruct(obj, null);
+		if (sct == null) return cco;
 
+		// --- capped collection ---
+		Boolean capped = caster.toBoolean(sct.get("capped", null), null);
+		if (capped != null) cco.capped(capped);
+		Integer size = caster.toInteger(sct.get("size", null), null);
+		if (size != null) cco.sizeInBytes(size.longValue());
+		Integer max = caster.toInteger(sct.get("max", null), null);
+		if (max != null) cco.maxDocuments(max.longValue());
 
+		// --- JSON Schema validator ---
+		Object validatorObj = sct.get("validator", null);
+		if (validatorObj != null) {
+			Document validatorDoc = toDocument(validatorObj, null);
+			if (validatorDoc != null) {
+				com.mongodb.client.model.ValidationOptions vo =
+					new com.mongodb.client.model.ValidationOptions().validator(validatorDoc);
+				String levelStr = caster.toString(sct.get("validationLevel", null), null);
+				if (levelStr != null) {
+					switch (levelStr.toLowerCase()) {
+						case "off":      vo.validationLevel(com.mongodb.client.model.ValidationLevel.OFF);      break;
+						case "moderate": vo.validationLevel(com.mongodb.client.model.ValidationLevel.MODERATE); break;
+						default:         vo.validationLevel(com.mongodb.client.model.ValidationLevel.STRICT);   break;
+					}
+				}
+				String actionStr = caster.toString(sct.get("validationAction", null), null);
+				if (actionStr != null) {
+					if ("warn".equalsIgnoreCase(actionStr))
+						vo.validationAction(com.mongodb.client.model.ValidationAction.WARN);
+					else
+						vo.validationAction(com.mongodb.client.model.ValidationAction.ERROR);
+				}
+				cco.validationOptions(vo);
+			}
+		}
 
+		// --- time series ---
+		Object tsObj = sct.get("timeseries", null);
+		if (tsObj != null) {
+			Struct tsSct = caster.toStruct(tsObj, null);
+			if (tsSct != null) {
+				String timeField = caster.toString(tsSct.get("timeField", null), null);
+				if (timeField != null) {
+					com.mongodb.client.model.TimeSeriesOptions tso =
+						new com.mongodb.client.model.TimeSeriesOptions(timeField);
+					String metaField = caster.toString(tsSct.get("metaField", null), null);
+					if (metaField != null) tso.metaField(metaField);
+					String gran = caster.toString(tsSct.get("granularity", null), null);
+					if (gran != null) {
+						switch (gran.toLowerCase()) {
+							case "minutes": tso.granularity(com.mongodb.client.model.TimeSeriesGranularity.MINUTES); break;
+							case "hours":   tso.granularity(com.mongodb.client.model.TimeSeriesGranularity.HOURS);   break;
+							default:        tso.granularity(com.mongodb.client.model.TimeSeriesGranularity.SECONDS); break;
+						}
+					}
+					cco.timeSeriesOptions(tso);
+				}
+			}
+		}
 
-	private DBObject _toDBObject(Object obj) throws PageException {
-		if(obj instanceof DBObject) return (DBObject) obj;
-		Struct sct = caster.toStruct(obj,null);
-		if(sct==null)
-			throw exp.createExpressionException("only a DBObject or Struct/Map can be set to define a DBCollection, " +
-					"a Structs/Map can have the following possible parameters:\n" +
-					"- capped:boolean: if the collection is capped\n" +
-					"- size:int: collection size\n" +
-					"- max:int: max number of documents"
-					);
+		// --- TTL (works for both time series and standard collections) ---
+		Object expireObj = sct.get("expireAfterSeconds", null);
+		if (expireObj != null)
+			cco.expireAfter(caster.toLongValue(expireObj), TimeUnit.SECONDS);
 
-		BasicDBObject bo=new BasicDBObject();
-		// capped
-		Boolean capped = caster.toBoolean(sct.get("capped",null),null);
-		if(capped!=null)bo.put("capped", capped);
-		// size
-		Integer size = caster.toInteger(sct.get("size",null),null);
-		if(size!=null)bo.put("size", size);
-		// max
-		Integer max = caster.toInteger(sct.get("max",null),null);
-		if(max!=null)bo.put("max", max);
-
-		return bo;
+		return cco;
 	}
 
-	public DB getDB() {
+	public MongoDatabase getDatabase() {
 		return db;
+	}
+
+	@Override
+	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
+		DumpTable table = new DumpTable("struct", "#339933", "#8e714e", "#000000");
+		table.setTitle("DB");
+		table.setComment("http://docs.mongodb.org/manual/reference/command/");
+		table.appendRow(1,
+			__toDumpData("name", pageContext, maxlevel, dp),
+			__toDumpData(db.getName(), pageContext, maxlevel, dp));
+		List<String> names = new ArrayList<String>();
+		db.listCollectionNames().into(names);
+		names.sort(null);
+		table.appendRow(1,
+			__toDumpData("collections", pageContext, maxlevel, dp),
+			__toDumpData(String.join(", ", names), pageContext, maxlevel, dp));
+		return table;
 	}
 }

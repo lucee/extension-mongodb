@@ -19,35 +19,84 @@
 package org.lucee.mongodb;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
+import org.bson.Document;
 import org.lucee.mongodb.support.ObjectSupport;
 
-import com.mongodb.AggregationOutput;
-import com.mongodb.DBObject;
+import com.mongodb.client.AggregateIterable;
+import com.mongodb.client.MongoCursor;
 
 public class AggregationOutputImpl extends ObjectSupport {
 
-	private AggregationOutput ao;
+	private AggregateIterable<Document> iterable;
+	private MongoCursor<Document> cursor;
 
-	public AggregationOutputImpl(AggregationOutput ao) {
-		this.ao=ao;
+	/** Normal constructor — wraps a live AggregateIterable for iteration. */
+	public AggregationOutputImpl(AggregateIterable<Document> iterable) {
+		this.iterable = iterable;
 	}
 
-    public Object results() {
-        Iterator<DBObject> it = ao.results().iterator();
-        ArrayList<Object> rtn=new ArrayList<Object>();
-        while(it.hasNext()){
-            rtn.add(new DBObjectImpl(it.next()));
-        }
-        return toCFML(rtn);
-    }
-
-	public String toString() {
-		return ao.toString();
+	/**
+	 * Empty-result constructor used after a {@code $merge} or {@code $out} stage
+	 * has been executed via {@code toCollection()}.  Those stages write to a
+	 * collection and produce no output documents; this instance reports itself
+	 * as already exhausted so callers get an empty result without a second
+	 * round-trip to the server.
+	 */
+	public AggregationOutputImpl() {
+		this.iterable = null;
 	}
 
-	public AggregationOutput getAggregationOutput(){
-		return ao;
+	private MongoCursor<Document> getCursor() {
+		if (cursor == null) cursor = iterable.iterator();
+		return cursor;
+	}
+
+	public boolean hasNext() {
+		if (iterable == null) return false;
+		return getCursor().hasNext();
+	}
+
+	public Object next() {
+		if (iterable == null) throw new java.util.NoSuchElementException("aggregation produced no output documents");
+		return toCFML(getCursor().next());
+	}
+
+	public void close() {
+		if (cursor != null) {
+			cursor.close();
+			cursor = null;
+		}
+	}
+
+	/**
+	 * Set the number of documents to return per server round-trip.
+	 * Must be called before iteration begins.
+	 * Returns {@code this} for chaining: {@code coll.aggregate([...]).batchSize(100).hasNext()}.
+	 */
+	public AggregationOutputImpl batchSize(int size) {
+		if (iterable != null) iterable = iterable.batchSize(size);
+		return this;
+	}
+
+	/**
+	 * The driver does not expose a getBatchSize() getter on AggregateIterable.
+	 * Returns 0 as a safe default, consistent with DBCursorImpl.getBatchSize().
+	 */
+	public int getBatchSize() {
+		return 0;
+	}
+
+	public Object results() {
+		if (iterable == null) return toCFML(new ArrayList<Object>());
+		ArrayList<Object> rtn = new ArrayList<Object>();
+		for (Document doc : iterable) {
+			rtn.add(toCFML(doc));
+		}
+		return toCFML(rtn);
+	}
+
+	public AggregateIterable<Document> getIterable() {
+		return iterable;
 	}
 }

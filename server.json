@@ -1,0 +1,21 @@
+{
+    "app":{
+        "cfengine":"lucee@6"
+    },
+    "env":{
+        "LUCEE_ADMIN_PASSWORD":"webweb"
+    },
+    "scripts":{
+        "onServerInitialInstall":"server lucee-deploy target/mongodb-extension-5.5.1.2.lex"
+    },
+    "web":{
+        "rules":[
+            "path('/') -> rewrite('/tests/run.cfm')"
+        ]
+    },
+    "dockEnable":false,
+    "trayEnable":true,
+    "fusionreactor":{
+        "enable":"false"
+    }
+}

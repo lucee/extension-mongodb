@@ -1,34 +1,39 @@
 package org.lucee.mongodb.cache;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import lucee.loader.engine.CFMLEngine;
-import lucee.loader.engine.CFMLEngineFactory;
-import lucee.runtime.type.Struct;
-import lucee.runtime.util.Cast;
-
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 
 public class MongoDBClient {
 
-    private static MongoClient instance=null;
+    private static MongoClient instance = null;
+    private static String currentUri   = null;
 
-    private MongoDBClient(){}
+    private MongoDBClient() {}
 
-    public static MongoClient init(MongoClientURI clientUri){
+    /**
+     * Return the cached client if the URI is unchanged, otherwise close the
+     * existing client and open a new one.  Synchronized to be safe against
+     * concurrent Lucee cache-initialisation calls on startup.
+     */
+    public static synchronized MongoClient init(String uri) {
+        if (instance != null && uri != null && uri.equals(currentUri)) {
+            return instance; // already open for this URI — reuse it
+        }
+        if (instance != null) {
+            try { instance.close(); } catch (Exception ignored) {}
+            instance = null;
+        }
         try {
-            instance = new MongoClient(clientUri);
+            instance   = MongoClients.create(uri);
+            currentUri = uri;
         } catch (MongoException e) {
             e.printStackTrace();
         }
-
         return instance;
     }
 
-    public static MongoClient getInstance(){
+    public static MongoClient getInstance() {
         return instance;
     }
 }

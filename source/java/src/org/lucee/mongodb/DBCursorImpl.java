@@ -18,6 +18,8 @@
  **/
 package org.lucee.mongodb;
 
+import java.util.ArrayList;
+import java.util.List;
 
 import lucee.runtime.PageContext;
 import lucee.runtime.dump.DumpData;
@@ -27,34 +29,55 @@ import lucee.runtime.exp.PageException;
 import lucee.runtime.type.Collection.Key;
 import lucee.runtime.type.Struct;
 
+import org.bson.Document;
 import org.lucee.mongodb.support.DBCursorImplSupport;
 
-import com.mongodb.DBCursor;
-import com.mongodb.DBObject;
+import com.mongodb.ServerCursor;
+import com.mongodb.client.FindIterable;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 
 public class DBCursorImpl extends DBCursorImplSupport {
 
 	private static final long serialVersionUID = -741186782338986790L;
 
-	private DBCursor cursor;
+	private FindIterable<Document> iterable;
+	private MongoCursor<Document> cursor;
+	private MongoCollection<Document> collection;
+	private Document filter;
+	private int numSeen = 0;
+	private Document lastDoc = null;
 
-	public DBCursorImpl(DBCursor cursor) {
-		this.cursor=cursor;
+	public DBCursorImpl(FindIterable<Document> iterable) {
+		this.iterable = iterable;
+	}
+
+	public DBCursorImpl(FindIterable<Document> iterable, MongoCollection<Document> collection, Document filter) {
+		this.iterable = iterable;
+		this.collection = collection;
+		this.filter = filter;
+	}
+
+	private MongoCursor<Document> cursor() {
+		if (cursor == null) cursor = iterable.iterator();
+		return cursor;
 	}
 
 	@Override
 	public boolean hasNext() {
-		return cursor.hasNext();
+		return cursor().hasNext();
 	}
 
 	@Override
 	public Object next() {
-		return toCFML(cursor.next());
+		lastDoc = cursor().next();
+		numSeen++;
+		return toCFML(lastDoc);
 	}
 
 	@Override
 	public void remove() {
-		cursor.remove();
+		throw new UnsupportedOperationException("remove is not supported on FindIterable");
 	}
 
 	@Override
@@ -64,7 +87,7 @@ public class DBCursorImpl extends DBCursorImplSupport {
 
 	@Override
 	public Object get(PageContext pc, Key key) throws PageException {
-		throw exp.createApplicationException("the cursor has no property with the name "+key);
+		throw exp.createApplicationException("the cursor has no property with the name " + key);
 	}
 
 	@Override
@@ -79,186 +102,125 @@ public class DBCursorImpl extends DBCursorImplSupport {
 
 	@Override
 	public Object call(PageContext pc, Key methodName, Object[] args) throws PageException {
-		// cursor.addOptions
-		if(methodName.equals("addOption")) {
-			checkArgLength("addOption",args,1,1);
-			return toCFML(cursor.addOption(caster.toIntValue(args[0])));
+		if (methodName.equals("batchSize")) {
+			checkArgLength("batchSize", args, 1, 1);
+			iterable.batchSize(caster.toIntValue(args[0]));
+			return toCFML(this);
 		}
-		// addSpecial
-		if(methodName.equals("addSpecial")) {
-			checkArgLength("addSpecial",args,2,2);
-			return toCFML(cursor.addSpecial(caster.toString(args[0]), toMongo(args[1])));
+		if (methodName.equals("limit")) {
+			checkArgLength("limit", args, 1, 1);
+			iterable.limit(caster.toIntValue(args[0]));
+			return toCFML(this);
 		}
-		// batchSize
-		if(methodName.equals("batchSize")) {
-			checkArgLength("batchSize",args,1,1);
-			return toCFML(cursor.batchSize(caster.toIntValue(args[0])));
+		if (methodName.equals("skip")) {
+			checkArgLength("skip", args, 1, 1);
+			iterable.skip(caster.toIntValue(args[0]));
+			return toCFML(this);
 		}
-		// copy
-		if(methodName.equals("copy")) {
-			checkArgLength("copy",args,0,0);
-			return toCFML(cursor.copy());
+		if (methodName.equals("sort")) {
+			checkArgLength("sort", args, 1, 1);
+			iterable.sort(toDocument(args[0]));
+			return toCFML(this);
 		}
-		// count
-		if(methodName.equals("count")) {
-			checkArgLength("count",args,0,0);
-			return toCFML(cursor.count());
+		if (methodName.equals("hint")) {
+			checkArgLength("hint", args, 1, 1);
+			Document dbo = toDocument(args[0], null);
+			if (dbo != null) iterable.hint(dbo);
+			else iterable.hintString(caster.toString(args[0]));
+			return toCFML(this);
 		}
-		// curr
-		if(methodName.equals("curr")) {
-			checkArgLength("curr",args,0,0);
-			return toCFML(cursor.curr());
+		if (methodName.equals("hasNext")) {
+			checkArgLength("hasNext", args, 0, 0);
+			return toCFML(cursor().hasNext());
 		}
-		// explain
-		if(methodName.equals("explain")) {
-			checkArgLength("explain",args,0,0);
-			return toCFML(cursor.explain());
+		if (methodName.equals("next")) {
+			checkArgLength("next", args, 0, 0);
+			return next(); // delegates to Java next() which tracks numSeen and lastDoc
 		}
-		// getCollection
-		if(methodName.equals("getCollection")) {
-			checkArgLength("getCollection",args,0,0);
-			return toCFML(cursor.getCollection());
+		if (methodName.equals("getCursorId")) {
+			checkArgLength("getCursorId", args, 0, 0);
+			ServerCursor sc = cursor().getServerCursor();
+			return toCFML(sc != null ? sc.getId() : 0L);
 		}
-		// getCursorId
-		if(methodName.equals("getCursorId")) {
-			checkArgLength("getCursorId",args,0,0);
-			return toCFML(cursor.getCursorId());
+		if (methodName.equals("getServerAddress")) {
+			checkArgLength("getServerAddress", args, 0, 0);
+			return toCFML(cursor().getServerAddress() != null ? cursor().getServerAddress().toString() : null);
 		}
-		// getDecoderFactory
-		if(methodName.equals("getDecoderFactory")) {
-			checkArgLength("getDecoderFactory",args,0,0);
-			return toCFML(cursor.getDecoderFactory());
+		if (methodName.equals("toArray")) {
+			checkArgLength("toArray", args, 0, 1);
+			List<Object> result = new ArrayList<Object>();
+			for (Document doc : iterable) {
+				result.add(toCFML(doc));
+				if (args.length == 1 && result.size() >= caster.toIntValue(args[0])) break;
+			}
+			return toCFML(result);
 		}
-		// getKeysWanted
-		if(methodName.equals("getKeysWanted")) {
-			checkArgLength("getKeysWanted",args,0,0);
-			return toCFML(cursor.getKeysWanted());
-		}
-		// getOptions
-		if(methodName.equals("getOptions")) {
-			checkArgLength("getOptions",args,0,0);
-			return toCFML(cursor.getOptions());
-		}
-		// getQuery
-		if(methodName.equals("getQuery")) {
-			checkArgLength("getQuery",args,0,0);
-			return toCFML(cursor.getQuery());
-		}
-		// getReadPreference
-		if(methodName.equals("getReadPreference")) {
-			checkArgLength("getReadPreference",args,0,0);
-			return toCFML(cursor.getReadPreference());
-		}
-		// getServerAddress
-		if(methodName.equals("getServerAddress")) {
-			checkArgLength("getServerAddress",args,0,0);
-			return toCFML(cursor.getServerAddress());
-		}
-		// hasNext
-		if(methodName.equals("hasNext")) {
-			checkArgLength("hasNext",args,0,0);
-			return toCFML(cursor.hasNext());
-		}
-		// itcount
-		if(methodName.equals("itcount")) {
-			checkArgLength("itcount",args,0,0);
-			return toCFML(cursor.itcount());
-		}
-		// iterator
-		if(methodName.equals("iterator")) {
-			checkArgLength("iterator",args,0,0);
-			return toCFML(cursor.iterator());
-		}
-		// length
-		if(methodName.equals("length")) {
-			checkArgLength("length",args,0,0);
-			return toCFML(cursor.length());
-		}
-		// next
-		if(methodName.equals("next")) {
-			checkArgLength("next",args,0,0);
-			return toCFML(cursor.next());
-		}
-		// numSeen
-		if(methodName.equals("numSeen")) {
-			checkArgLength("numSeen",args,0,0);
-			return toCFML(cursor.numSeen());
-		}
-		// resetOptions
-		if(methodName.equals("resetOptions")) {
-			checkArgLength("resetOptions",args,0,0);
-			return toCFML(cursor.resetOptions());
-		}
-		// size
-		if(methodName.equals("size")) {
-			checkArgLength("size",args,0,0);
-			return toCFML(cursor.size());
-		}
-		// snapshot
-		if(methodName.equals("snapshot")) {
-			checkArgLength("snapshot",args,0,0);
-			return toCFML(cursor.snapshot());
-		}
-		// toArray
-		if(methodName.equals("toArray")) {
-			checkArgLength("toArray",args,0,1);
-			if(args.length==0)return toCFML(cursor.toArray());
-			return toCFML(cursor.toArray(caster.toIntValue(args[0])));
-		}
-		// close
-		if(methodName.equals("close")) {
-			checkArgLength("close",args,0,0);
-			cursor.close();
+		if (methodName.equals("close")) {
+			checkArgLength("close", args, 0, 0);
+			if (cursor != null) { cursor.close(); cursor = null; }
 			return null;
 		}
-		// remove
-		if(methodName.equals("remove")) {
-			checkArgLength("remove",args,0,0);
-			cursor.remove();
-			return null;
+		if (methodName.equals("iterator")) {
+			checkArgLength("iterator", args, 0, 0);
+			return toCFML(cursor());
+		}
+		if (methodName.equals("getBatchSize")) {
+			checkArgLength("getBatchSize", args, 0, 0);
+			return toCFML(0);
+		}
+		// count: total documents matching the filter, ignoring limit/skip (matches 3.x DBCursor.count() semantics)
+		if (methodName.equals("count")) {
+			checkArgLength("count", args, 0, 0);
+			if (collection != null) {
+				return toCFML(collection.countDocuments(filter != null ? filter : new Document()));
+			}
+			// fallback: iterate when no collection reference is available
+			int n = 0;
+			for (Document ignored : iterable) n++;
+			return toCFML(n);
+		}
+		// size/length/itcount: count respecting limit/skip (iterate the bounded FindIterable)
+		if (methodName.equals("size") || methodName.equals("length") || methodName.equals("itcount")) {
+			checkArgLength(methodName.getString(), args, 0, 0);
+			int n = 0;
+			for (Document ignored : iterable) n++;
+			return toCFML(n);
+		}
+		if (methodName.equals("explain")) {
+			checkArgLength("explain", args, 0, 0);
+			return toCFML(iterable.explain());
+		}
+		// numSeen — number of documents returned by next() so far
+		if (methodName.equals("numSeen")) {
+			checkArgLength("numSeen", args, 0, 0);
+			return toCFML(numSeen);
+		}
+		// curr — the document most recently returned by next(), or null before first call
+		if (methodName.equals("curr")) {
+			checkArgLength("curr", args, 0, 0);
+			return lastDoc != null ? toCFML(lastDoc) : null;
+		}
+		// getQuery — the filter document passed to find()
+		if (methodName.equals("getQuery")) {
+			checkArgLength("getQuery", args, 0, 0);
+			return toCFML(filter != null ? filter : new Document());
+		}
+		// getCollection — the collection this cursor was opened against
+		if (methodName.equals("getCollection")) {
+			checkArgLength("getCollection", args, 0, 0);
+			return collection != null ? toCFML(new DBCollectionImpl(collection, null)) : null;
+		}
+		// Methods that were genuinely removed in 5.x with no equivalent
+		if (methodName.equals("addOption") || methodName.equals("addSpecial") || methodName.equals("copy") ||
+			methodName.equals("getDecoderFactory") || methodName.equals("getKeysWanted") ||
+			methodName.equals("getOptions") || methodName.equals("getReadPreference") ||
+			methodName.equals("resetOptions") || methodName.equals("snapshot") || methodName.equals("setOptions")) {
+			throw exp.createApplicationException("cursor." + methodName + "() was removed in MongoDB Java driver 5.x");
 		}
 
-		// hint
-		if(methodName.equals("hint")) {
-			checkArgLength("hint",args,1,1);
-			DBObject dbo = toDBObject(args[0], null);
-			if(dbo!=null)
-				return toCFML(cursor.hint(dbo));
-			return toCFML(cursor.hint(caster.toString(args[0])));
-		}
-		// limit
-		if(methodName.equals("limit")) {
-			checkArgLength("limit",args,1,1);
-			return toCFML(cursor.limit(caster.toIntValue(args[0])));
-		}
-		// setOptions
-		if(methodName.equals("setOptions")) {
-			checkArgLength("setOptions",args,1,1);
-			return toCFML(cursor.setOptions(caster.toIntValue(args[0])));
-		}
-		// skip
-		if(methodName.equals("skip")) {
-			checkArgLength("skip",args,1,1);
-			return toCFML(cursor.skip(caster.toIntValue(args[0])));
-		}
-		// sort
-		if(methodName.equals("sort")) {
-			checkArgLength("sort",args,1,1);
-			return toCFML(cursor.sort(toDBObject(args[0])));
-		}
-		if(methodName.equals("getBatchSize")) {
-			checkArgLength("getBatchSize",args,0,0);
-			return toCFML(cursor.getBatchSize());
-		}
-
-		String supportedFunctions=
-			"addOption,addSpecial,batchSize,copy,count,curr,explain,getCollection,getCursorId,getDecoderFactory,getKeysWanted,getOptions," +
-			"getQuery,getReadPreference,getServerAddress,getSizes,getBatchSize,hasNext,itcount,iterator,length,next,numGetMores,numSeen,resetOptions," +
-			"size,snapshot,toArray,close,remove,hint,limit,setOptions,skip,sort";
-
-		throw exp.createExpressionException("function ["+methodName+"] is not supported, supported functions are ["+supportedFunctions+"]");
-
-
+		String supportedFunctions = "batchSize,limit,skip,sort,hint,hasNext,next,getCursorId,getServerAddress," +
+			"toArray,close,iterator,getBatchSize,count,size,explain,numSeen,curr,getQuery,getCollection";
+		throw exp.createExpressionException("function [" + methodName + "] is not supported, supported functions are [" + supportedFunctions + "]");
 	}
 
 	@Override
@@ -268,28 +230,13 @@ public class DBCursorImpl extends DBCursorImplSupport {
 
 	@Override
 	public DumpData toDumpData(PageContext pageContext, int maxlevel, DumpProperties dp) {
-		//List<DBObject> arr = cursor.toArray();
-		//Iterator<DBObject> it = arr.iterator();
-		DumpTable table = new DumpTable("struct","#339933","#8e714e","#000000");
-		//if(arr.size()>10 && dp.getMetainfo())table.setComment("Entries:"+arr.size());
-	    table.setTitle("DBCursor");
-	    table.appendRow(0,
-				__toDumpData("Cannot display data of Cursor", pageContext,maxlevel,dp)
-		);
-		/*DBObject obj;
-		while(it.hasNext()) {
-			obj = it.next();
-				table.appendRow(0,
-						__toDumpData(toCFML(obj), pageContext,maxlevel,dp)
-				);
-		}*/
+		DumpTable table = new DumpTable("struct", "#339933", "#8e714e", "#000000");
+		table.setTitle("DBCursor");
+		table.appendRow(0, __toDumpData("Cannot display data of Cursor", pageContext, maxlevel, dp));
 		return table;
 	}
 
-
-	public DBCursor getDBCursor() {
-		return cursor;
+	public FindIterable<Document> getIterable() {
+		return iterable;
 	}
-
-
 }
