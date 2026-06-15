@@ -76,6 +76,11 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 			uri = "mongodb://#variables.mongoDB.user#:#variables.mongoDB.pass#@#variables.mongoDB.server#:#variables.mongoDB.port#";
 
 		db = MongoDBConnect("test",uri);
+		variables.mongoMajorVersion = val(listFirst(db.runCommand({"buildInfo": 1}).version, "."));
+	}
+
+	private boolean function isTimeSeriesNotSupported() {
+		return isNotSupported() || variables.mongoMajorVersion < 5;
 	}
 	
 	//public function afterTests(){}
@@ -695,7 +700,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		coll.drop();
 	}
 
-	public void function testCreateTimeSeriesCollection() skip="isNotSupported" {
+	public void function testCreateTimeSeriesCollection() skip="isTimeSeriesNotSupported" {
 		var coll = db.getCollection("test_timeseries");
 		coll.drop();
 
