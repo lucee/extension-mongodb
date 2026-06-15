@@ -95,6 +95,7 @@ jobs:
         env:
           testLabels: mongodb
           testAdditional: ${{ github.workspace }}/tests
+          LUCEE_ENABLE_WARMUP: 'true'
           MONGODB_SERVER: localhost
           MONGODB_PORT: 27017
           MONGODB_DB: lucee

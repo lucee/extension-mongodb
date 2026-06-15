@@ -76,11 +76,20 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 			uri = "mongodb://#variables.mongoDB.user#:#variables.mongoDB.pass#@#variables.mongoDB.server#:#variables.mongoDB.port#";
 
 		db = MongoDBConnect("test",uri);
-		variables.mongoMajorVersion = val(listFirst(db.runCommand({"buildInfo": 1}).version, "."));
 	}
 
 	function isTimeSeriesNotSupported() {
-		return isNotSupported() || variables.mongoMajorVersion < 5;
+		if (isNotSupported()) return true;
+		try {
+			var mongoDB = getCredentials();
+			var uri = "mongodb://#mongoDB.server#:#mongoDB.port#";
+			if (!isEmpty(mongoDB.user) && !isEmpty(mongoDB.pass))
+				uri = "mongodb://#mongoDB.user#:#mongoDB.pass#@#mongoDB.server#:#mongoDB.port#";
+			var majorVersion = val(listFirst(MongoDBConnect("test", uri).runCommand({"buildInfo": 1}).version, "."));
+			return majorVersion < 5;
+		} catch (any e) {
+			return true;
+		}
 	}
 	
 	//public function afterTests(){}
