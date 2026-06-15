@@ -62,18 +62,23 @@ public class DBObjectImpl extends DBObjectImplSupport {
 
 	@Override
 	public Object remove(Key key) throws PageException {
-		if (!doc.containsKey(key.getString()))
+		String resolved = resolveKey(key.getString());
+		if (resolved == null)
 			throw exp.createApplicationException("There is no key [" + key + "] in the Document");
-		return doc.remove(key.getString());
+		return doc.remove(resolved);
 	}
 
 	@Override
 	public Object removeEL(Key key) {
-		return doc.remove(key.getString());
+		String resolved = resolveKey(key.getString());
+		if (resolved == null) return null;
+		return doc.remove(resolved);
 	}
 
 	public Object remove(Key key, Object defaultValue) {
-		Object rtn = doc.remove(key.getString());
+		String resolved = resolveKey(key.getString());
+		if (resolved == null) return defaultValue;
+		Object rtn = doc.remove(resolved);
 		return rtn == null ? defaultValue : rtn;
 	}
 
@@ -84,13 +89,15 @@ public class DBObjectImpl extends DBObjectImplSupport {
 
 	@Override
 	public Object get(String key) throws PageException {
-		if (doc.containsKey(key)) return toCFML(doc.get(key));
+		String resolved = resolveKey(key);
+		if (resolved != null) return toCFML(doc.get(resolved));
 		throw exp.createApplicationException("There is no key [" + key + "] in the Document");
 	}
 
 	@Override
 	public Object get(String key, Object defaultValue) {
-		if (doc.containsKey(key)) return toCFML(doc.get(key));
+		String resolved = resolveKey(key);
+		if (resolved != null) return toCFML(doc.get(resolved));
 		return defaultValue;
 	}
 
@@ -113,7 +120,15 @@ public class DBObjectImpl extends DBObjectImplSupport {
 
 	@Override
 	public boolean containsKey(String key) {
-		return doc.containsKey(key);
+		return resolveKey(key) != null;
+	}
+
+	private String resolveKey(String key) {
+		if (doc.containsKey(key)) return key;
+		for (String k : doc.keySet()) {
+			if (k.equalsIgnoreCase(key)) return k;
+		}
+		return null;
 	}
 
 	@Override
@@ -125,15 +140,18 @@ public class DBObjectImpl extends DBObjectImplSupport {
 	public Object call(PageContext pc, Key methodName, Object[] args) throws PageException {
 		if (methodName.equals("containsField") || methodName.equals("containsKey")) {
 			checkArgLength("containsField", args, 1, 1);
-			return toCFML(doc.containsKey(caster.toString(args[0])));
+			return toCFML(resolveKey(caster.toString(args[0])) != null);
 		}
 		if (methodName.equals("get")) {
 			int len = checkArgLength("get", args, 1, 2);
 			String key = caster.toString(args[0]);
+			String resolved = resolveKey(key);
 			if (len == 2) {
-				return doc.containsKey(key) ? toCFML(doc.get(key)) : args[1];
+				return resolved != null ? toCFML(doc.get(resolved)) : args[1];
 			}
-			return toCFML(doc.get(key));
+			if (resolved == null)
+				throw exp.createApplicationException("There is no key [" + key + "] in the Document");
+			return toCFML(doc.get(resolved));
 		}
 		if (methodName.equals("isPartialObject")) {
 			checkArgLength("isPartialObject", args, 0, 0);
@@ -145,7 +163,8 @@ public class DBObjectImpl extends DBObjectImplSupport {
 		}
 		if (methodName.equals("removeField") || methodName.equals("remove")) {
 			checkArgLength("removeField", args, 1, 1);
-			return toCFML(doc.remove(caster.toString(args[0])));
+			String resolved = resolveKey(caster.toString(args[0]));
+			return toCFML(resolved != null ? doc.remove(resolved) : null);
 		}
 		if (methodName.equals("toMap")) {
 			checkArgLength("toMap", args, 0, 0);

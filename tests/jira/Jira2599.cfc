@@ -79,7 +79,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		variables.mongoMajorVersion = val(listFirst(db.runCommand({"buildInfo": 1}).version, "."));
 	}
 
-	private boolean function isTimeSeriesNotSupported() {
+	function isTimeSeriesNotSupported() {
 		return isNotSupported() || variables.mongoMajorVersion < 5;
 	}
 	
