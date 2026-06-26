@@ -75,7 +75,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mongodb-lex-${{ matrix.lucee.version }}
-          path: target/*.lex
+          path: |
+            target/*.lex
+            !target/*.lite.lex
 
       - name: Checkout Lucee
         uses: actions/checkout@v4
