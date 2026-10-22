@@ -144,3 +144,68 @@ jobs:
             echo "------- Maven Deploy release on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy -DperformRelease=true --settings maven-settings.xml
           fi
+
+      # LDEV-6696: the published .lex files (full and lite) for the github-release job
+      - name: Upload artifact for GitHub release
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mongodb-release
+          path: target/*.lex
+
+  # LDEV-6696: publish every final, ALPHA, BETA and RC build as a GitHub release with its .lex files attached,
+  # so ext.lucee.org can redirect downloads to GitHub releases (LDEV-6511). -SNAPSHOT builds get no GitHub release.
+  # Separate job, so a failure here never blocks the Maven Central deploy.
+  github-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [setup, deploy]
+    if: >-
+      always() && needs.deploy.result == 'success'
+      && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && !endsWith(needs.setup.outputs.version, '-SNAPSHOT')
+    permissions:
+      # create the release (and its tag) and upload its assets
+      contents: write
+    steps:
+      # the files the deploy job built and published
+      - name: Download published extension
+        uses: actions/download-artifact@v4
+        with:
+          name: mongodb-release
+          path: release-files
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.setup.outputs.version }}
+          IS_DEFAULT_BRANCH: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          mapfile -t FILES < <(find release-files -type f \( -name "*-${VERSION}.lex" -o -name "*-${VERSION}.lite.lex" \) | sort)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "::error::no .lex files for $VERSION found"; find release-files -type f; exit 1
+          fi
+          printf 'Asset: %s\n' "${FILES[@]}"
+
+          # the release tag is the exact published version (3.4.4.1 or 3.4.4.1-RC), created on this commit
+          # if it does not exist yet. ALPHA/BETA/RC are pre-releases and never "latest".
+          if [[ "$VERSION" == *-* ]]; then
+            PRE=(--prerelease --latest=false)
+          elif [ "$IS_DEFAULT_BRANCH" == "true" ]; then
+            PRE=(--latest)
+          else
+            PRE=(--latest=false)
+          fi
+
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "Release $VERSION already exists - uploading assets again"
+            gh release upload "$VERSION" "${FILES[@]}" --clobber
+          else
+            echo "Creating release $VERSION ${PRE[*]} on $GITHUB_SHA"
+            gh release create "$VERSION" "${FILES[@]}" "${PRE[@]}" --target "$GITHUB_SHA" \
+              --title "$VERSION" \
+              --notes "Build $VERSION from commit $GITHUB_SHA, published by $RUN_URL"
+          fi
