@@ -132,6 +132,17 @@ jobs:
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
+      - name: Install Maven 3.9.16
+        # ubuntu-latest moved to Maven 3.10.0 (Oct 2026), which stages maven-metadata-local.xml
+        # in the deploy bundle; Central then rejects it
+        # ("Bundle has content that does NOT have a .pom file"). Pin 3.9.16 for the deploy.
+        run: |
+          curl -fsSL -o /tmp/maven.tar.gz https://archive.apache.org/dist/maven/maven-3/3.9.16/binaries/apache-maven-3.9.16-bin.tar.gz
+          echo "831a8591fe20c8243b1dbe7d71e3244f31d1665b0804b2e825e38cbbe5ce0cafb8338851f90780735568773e0a6cd07bbec107cda0b896b008b861075358b6f6  /tmp/maven.tar.gz" | sha512sum -c -
+          tar -xzf /tmp/maven.tar.gz -C /tmp
+          echo "/tmp/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
+          /tmp/apache-maven-3.9.16/bin/mvn -v
+
       - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
