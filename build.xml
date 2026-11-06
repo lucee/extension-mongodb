@@ -4,7 +4,6 @@
         Build MongoDB Extension
     </description>
 
-  <property name="lib" location="source/java/libs"/>
   <property name="src" location="source/java/src"/>
   <property name="build" location="build"/>
   <property name="fld" location="${build}/flds"/>
@@ -14,7 +13,7 @@
   <!-- Default values used when building directly with ant (not via Maven).
        Maven overrides these via maven-antrun-plugin <property> elements. -->
   <property name="filename"        value="mongodb-extension"/>
-  <property name="bundleversion"   value="5.5.1.2"/>
+  <property name="bundleversion"   value="5.5.1.5-SNAPSHOT"/>
   <property name="bundlename"      value="org.lucee.mongodb.extension"/>
   <property name="id"              value="E6634E1A-4CC5-4839-A83C67549ECA8D5B"/>
   <property name="groupId"         value="org.lucee"/>
@@ -24,68 +23,141 @@
   <property name="luceeCoreVersion" value="5.0.0.150"/>
   <property name="releaseType"     value="server"/>
   <property name="description"     value="MongoDB Cache and Datasource implementation for Lucee"/>
-
-  <path id="classpath">
-    <!-- use the loader project directly <pathelement location="${luceeLoader}" /> -->
-    <fileset dir="${lib}">
-      <include name="**/*.jar" />
-    </fileset>
-  </path>
+  <property name="mvnGroupId"      value="org.lucee"/>
+  <property name="mvnGroupPath"    value="org/lucee"/>
+  <property name="mvnArtifactId"   value="mongodb"/>
+  <property name="maven.goal"      value="install"/>
+  <property name="maven.username"  value=""/>
+  <property name="maven.password"  value=""/>
+  <property name="gpg.passphrase"  value=""/>
 
   <target name="init">
-    <!-- Create the time stamp -->
     <tstamp/>
 
     <delete dir="${temp}"/>
     <delete dir="${dist}"/>
 
-    <!-- Create the build directory structure used by compile -->
     <mkdir dir="${temp}"/>
-    <mkdir dir="${temp}/classes"/>
     <mkdir dir="${dist}/"/>
-
 
     <tstamp>
      <format property="NOW" pattern="yyyy-MM-dd HH:mm:ss" />
     </tstamp>
   </target>
 
-  <target name="compile" depends="init"
-        description="compile the source " >
-    <!-- Compile Java source -->
-    <javac srcdir="${src}" target="11" source="11" destdir="${temp}/classes" debug="true" debuglevel="lines,vars,source" includeantruntime="false">
-      <classpath refid="classpath" />
-    </javac>
+  <target name="maven-build" depends="init">
 
-    <!-- Put everything in ${build} into .jar file -->
-    <jar
-      jarfile="${dist}/extension/jars/${bundlename}-${bundleversion}.jar" basedir="${temp}/classes"  manifest="${src}/META-INF/MANIFEST.MF">
-      <manifest>
-        <attribute name="Bundle-Version" value="${bundleversion}"/>
-        <attribute name="Built-Date" value="${NOW}"/>
-        <attribute name="Bundle-SymbolicName" value="${bundlename}"/>
-      </manifest>
-    </jar>
+    <condition property="is.deploy" value="true" else="false">
+      <equals arg1="${maven.goal}" arg2="deploy"/>
+    </condition>
+
+    <!-- Check if artifact already exists in Maven Central (only relevant when deploying) -->
+    <condition property="artifact.exists">
+      <and>
+        <equals arg1="${is.deploy}" arg2="true"/>
+        <http url="https://repo1.maven.org/maven2/${mvnGroupPath}/${mvnArtifactId}/${bundleversion}/${mvnArtifactId}-${bundleversion}.pom"/>
+      </and>
+    </condition>
+
+    <!--
+      effective.goal logic:
+      - deploy requested AND artifact not yet on Central → deploy
+      - anything else (package, install, unresolved ${goal}, artifact already exists) → install
+    -->
+    <condition property="effective.goal" value="deploy">
+      <and>
+        <equals arg1="${is.deploy}" arg2="true"/>
+        <not><istrue value="${artifact.exists}"/></not>
+      </and>
+    </condition>
+    <property name="effective.goal" value="install"/>
+
+    <echo>goal:${maven.goal}</echo>
+    <echo>effective.goal:${effective.goal}</echo>
+    <echo>performRelease:${is.deploy}</echo>
+    <echo>groupId:${mvnGroupId}</echo>
+    <echo>groupPath:${mvnGroupPath}</echo>
+    <echo>artifactId:${mvnArtifactId}</echo>
+    <echo>bundleversion:${bundleversion}</echo>
+
+    <exec dir="source/java" executable="mvn" failonerror="true">
+      <arg value="clean"/>
+      <arg value="${effective.goal}"/>
+      <arg value="-Drevision=${bundleversion}"/>
+      <arg value="-DperformRelease=${is.deploy}"/>
+      <arg value="-e"/>
+      <arg value="--settings"/>
+      <arg value="${basedir}/maven-settings.xml"/>
+      <arg value="-Dmaven.username=${maven.username}"/>
+      <arg value="-Dmaven.password=${maven.password}"/>
+      <arg value="-Dgpg.passphrase=${gpg.passphrase}"/>
+    </exec>
+
+    <!-- Copy dependencies with Maven repository layout -->
+    <exec dir="source/java" executable="mvn" failonerror="true">
+      <arg value="-DoutputDirectory=${temp}/dependency"/>
+      <arg value="-Dmdep.copyPom=true"/>
+      <arg value="-Dmdep.useRepositoryLayout=true"/>
+      <arg value="-DexcludeScope=provided"/>
+      <arg value="-Drevision=${bundleversion}"/>
+      <arg value="dependency:copy-dependencies"/>
+    </exec>
+
+    <!-- Copy parent POMs -->
+    <exec executable="bash" failonerror="true">
+      <arg value="${basedir}/copy-parent-poms.sh"/>
+      <arg value="${temp}/dependency"/>
+    </exec>
   </target>
 
-  <target name="copyBase" depends="compile"
-        description="compile the source " >
+  <target name="copy-dependencies" depends="maven-build">
+    <mkdir dir="${dist}/extension/maven"/>
+
+    <!-- Copy the Maven-built JAR and POM -->
+    <copy todir="${dist}/extension/maven">
+      <fileset dir="source/java/target">
+        <include name="*.jar"/>
+        <include name="*.pom"/>
+        <exclude name="*-sources.jar"/>
+        <exclude name="*-javadoc.jar"/>
+      </fileset>
+    </copy>
+
+    <copy file="source/java/pom.xml" tofile="${dist}/extension/maven/${mvnArtifactId}-${bundleversion}.pom"/>
+
+    <mkdir dir="${dist}/extension/maven/${mvnGroupPath}/${mvnArtifactId}/${bundleversion}/"/>
+
+    <move file="${dist}/extension/maven/${mvnArtifactId}-${bundleversion}.jar"
+          tofile="${dist}/extension/maven/${mvnGroupPath}/${mvnArtifactId}/${bundleversion}/${mvnArtifactId}-${bundleversion}.jar"/>
+    <move file="${dist}/extension/maven/${mvnArtifactId}-${bundleversion}.pom"
+          tofile="${dist}/extension/maven/${mvnGroupPath}/${mvnArtifactId}/${bundleversion}/${mvnArtifactId}-${bundleversion}.pom"/>
+
+    <!-- Copy all dependencies (MongoDB driver OSGi bundles plus their POMs) -->
+    <copy todir="${dist}/extension/maven">
+      <fileset dir="${temp}/dependency">
+        <include name="**/*.jar"/>
+        <include name="**/*.pom"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="copyBase" depends="copy-dependencies"
+        description="copy FLD, functions and cache driver" >
 
     <!-- copy the tlds necessary -->
-    <copy 
-      file="${fld}/mongodb.fld" 
+    <copy
+      file="${fld}/mongodb.fld"
       tofile="${dist}/extension/flds/mongodb.fld" />
-    <replaceregexp 
-      file="${dist}/extension/flds/mongodb.fld" 
-      match="\{bundle-name\}" 
-      replace="${bundlename}" 
+    <replaceregexp
+      file="${dist}/extension/flds/mongodb.fld"
+      match="\{bundle-name\}"
+      replace="${bundlename}"
       byline="true"/>
-    <replaceregexp 
-      file="${dist}/extension/flds/mongodb.fld" 
-      match="\{bundle-version\}" 
-      replace="${bundleversion}" 
+    <replaceregexp
+      file="${dist}/extension/flds/mongodb.fld"
+      match="\{bundle-version\}"
+      replace="${bundleversion}"
       byline="true"/>
-
 
       <!-- copy the functions necessary -->
       <copy todir="${dist}/extension/functions">
@@ -94,19 +166,10 @@
         </fileset>
       </copy>
 
-      <!-- copy the jars necessary -->
-      <copy todir="${dist}/extension/jars">
-        <fileset dir="${lib}">
-          <include name="**/*.jar"/>
-          <exclude name="**/javax.servlet.jar"/>
-          <exclude name="**/lucee.jar"/>
-        </fileset>
-      </copy>
-
   </target>
 
-  <target name="copyModern" depends="copyBase" description="copy source file to temp" >
-    
+  <target name="copyModern" depends="copyBase" description="write extension manifest and cache driver" >
+
   <echo file="${dist}/extension/META-INF/MANIFEST.MF">Manifest-Version: 1.0
 Built-Date: ${NOW}
 version: "${bundleversion}"
@@ -114,36 +177,52 @@ groupId: "${groupId}"
 artifactId: "${artifactId}"
 id: "${id}"
 name: "${label}"
-lucee-core-version: "${luceeCoreVersion}”
+lucee-core-version: "${luceeCoreVersion}"
 release-type: ${releaseType}
 description: "${description}"
 start-bundles: false
 trial: false
+cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bundleversion}','maven':'${mvnGroupId}:${mvnArtifactId}:${bundleversion}'}]"
 </echo>
-    
-    <!-- copy the tlds necessary -->
-    <copy 
-      file="${build}/context/admin/cdriver/MongoDBCache.cfc" 
+
+    <!-- copy the cache driver -->
+    <copy
+      file="${build}/context/admin/cdriver/MongoDBCache.cfc"
       tofile="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc" />
-    <replaceregexp 
-      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc" 
-      match="\{class\}" 
-      replace="${class}" 
+    <replaceregexp
+      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc"
+      match="\{class\}"
+      replace="${class}"
       byline="true"/>
-    <replaceregexp 
-      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc" 
-      match="\{label\}" 
-      replace="${label}" 
+    <replaceregexp
+      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc"
+      match="\{label\}"
+      replace="${label}"
       byline="true"/>
-    <replaceregexp 
-      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc" 
-      match="\{desc\}" 
-      replace="${description}" 
+    <replaceregexp
+      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc"
+      match="\{desc\}"
+      replace="${description}"
+      byline="true"/>
+    <replaceregexp
+      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc"
+      match="\{bundlename\}"
+      replace="${bundlename}"
+      byline="true"/>
+    <replaceregexp
+      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc"
+      match="\{bundleversion\}"
+      replace="${bundleversion}"
+      byline="true"/>
+    <replaceregexp
+      file="${dist}/extension/context/admin/cdriver/MongoDBCache.cfc"
+      match="\{maven\}"
+      replace="${mvnGroupId}:${mvnArtifactId}:${bundleversion}"
       byline="true"/>
 
   </target>
 
-  <target name="buildModern" depends="copyModern" description="generate the distribution" > 
+  <target name="dist" depends="copyModern" description="generate the distribution" >
       <!-- copy the logo -->
       <copy todir="${dist}/extension/META-INF">
         <fileset dir="${build}/images">
@@ -151,13 +230,20 @@ trial: false
         </fileset>
       </copy>
 
-      <!-- Zip everything  -->
+      <!-- Full lex (includes bundled Maven dependencies) -->
       <zip destfile="${dist}/${filename}-${bundleversion}.lex">
           <zipfileset dir="${dist}/extension"/>
       </zip>
+
+      <!-- Lite lex (without bundled Maven dependencies) -->
+      <zip destfile="${dist}/${filename}-${bundleversion}.lite.lex">
+          <zipfileset dir="${dist}/extension">
+            <exclude name="maven/**"/>
+          </zipfileset>
+      </zip>
   </target>
 
-  <target name="clean"  depends="buildModern" description="clean up" >
+  <target name="clean"  depends="dist" description="clean up" >
     <delete dir="${temp}"/>
     <delete dir="${dist}/extension"/>
   </target>

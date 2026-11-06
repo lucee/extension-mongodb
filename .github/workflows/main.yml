@@ -170,7 +170,7 @@ jobs:
       - name: Build and Install with Maven
         run: |
           echo "------- Maven Install -------";
-          mvn -B -e -f pom.xml clean install
+          mvn -B -e -f pom.xml clean install -Dgoal=install
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -274,14 +274,14 @@ jobs:
           set -euo pipefail
           if [[ "${VERSION}" == *-SNAPSHOT ]]; then
             echo "------- Maven Deploy snapshot ${VERSION} on ${{ github.event_name }} -------";
-            mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
+            mvn -B -e -f pom.xml clean deploy -Dgoal=deploy --settings maven-settings.xml
           elif [[ "${VERSION}" =~ -(RC|BETA|ALPHA)$ ]]; then
             # pre-releases are not published to Maven Central; the github-release job publishes the .lex
             echo "------- Maven Install (signed) ${VERSION} on ${{ github.event_name }}, GitHub release only -------";
-            mvn -B -e -f pom.xml clean install -DperformRelease=true --settings maven-settings.xml
+            mvn -B -e -f pom.xml clean install -Dgoal=install -DperformRelease=true --settings maven-settings.xml
           else
             echo "------- Maven Deploy release ${VERSION} on ${{ github.event_name }} -------";
-            mvn -B -e -f pom.xml clean deploy -DperformRelease=true --settings maven-settings.xml
+            mvn -B -e -f pom.xml clean deploy -Dgoal=deploy -DperformRelease=true --settings maven-settings.xml
           fi
 
       # LDEV-6696: the published .lex files (full and lite) for the github-release job
