@@ -198,9 +198,12 @@ jobs:
         env:
           testLabels: mongodb
           testAdditional: ${{ github.workspace }}/tests
-          LUCEE_ENABLE_WARMUP: 'true'
+          # This invocation must execute bootstrap-tests.cfm, not exit after warmup.
+          LUCEE_ENABLE_WARMUP: 'false'
           MONGODB_SERVER: localhost
           MONGODB_PORT: 27017
+          MONGODB_USERNAME: ""
+          MONGODB_PASSWORD: ""
           MONGODB_DB: lucee
           MONGODB_DATABASE: lucee
 
