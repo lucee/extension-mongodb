@@ -1,13 +1,56 @@
 name: Java CI Combined
 
-on: [push, pull_request, workflow_dispatch]
+# Push publishes the -SNAPSHOT version already in pom.xml to the Sonatype snapshot repo.
+# A manual run picks a type: release (default) X.Y.Z.N, rc X.Y.Z.N-RC, beta X.Y.Z.N-BETA, alpha X.Y.Z.N-ALPHA
+# (N from the -SNAPSHOT in pom.xml), then commits the next -SNAPSHOT. Type "snapshot" only deploys the current snapshot.
+# Where each version goes:
+#   final (X.Y.Z.N) and -SNAPSHOT: mvn deploy (Maven Central / snapshot repo)
+#   -RC, -BETA, -ALPHA:            mvn install (signed) and a GitHub release; never Central
+# A push to a branch with a -SNAPSHOT version also commits the next -SNAPSHOT after the deploy,
+# so every commit gets its own build number. The bump commit itself does not bump again.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: 'What to publish: release (X.Y.Z.N), rc (-RC), beta (-BETA), alpha (-ALPHA), or snapshot (deploy the current -SNAPSHOT, no bump)'
+        type: choice
+        options:
+          - release
+          - rc
+          - beta
+          - alpha
+          - snapshot
+        default: release
 
 jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.extract-version.outputs.VERSION }}
+      release: ${{ steps.extract-version.outputs.RELEASE }}
+      next_version: ${{ steps.extract-version.outputs.NEXT_VERSION }}
+      publish: ${{ steps.publish.outputs.PUBLISH }}
     steps:
+      # Only pushes and manual runs on master/main, a version branch (1.0, 2.0, ...) or release/* may
+      # publish (deploy) or commit (bump). Feature and PR branches only build and test.
+      - name: Decide whether this run may publish
+        id: publish
+        env:
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+        run: |
+          PUBLISH=false
+          if [[ "$EVENT" == "push" || "$EVENT" == "workflow_dispatch" ]]; then
+            BRANCH="${REF#refs/heads/}"
+            if [[ "$REF" == refs/heads/* ]] && [[ "$BRANCH" == "master" || "$BRANCH" == "main" || "$BRANCH" =~ ^[0-9]+(\.[0-9]+)*$ || "$BRANCH" == release/* ]]; then
+              PUBLISH=true
+            fi
+          fi
+          echo "event=${EVENT} ref=${REF} publish=${PUBLISH}"
+          echo "PUBLISH=${PUBLISH}" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -27,9 +70,47 @@ jobs:
 
       - name: Extract version number
         id: extract-version
+        env:
+          # A manual run releases unless the box is snapshot. Push and pull_request never do.
+          RELEASE_TYPE: ${{ github.event_name == 'workflow_dispatch' && inputs.type || 'snapshot' }}
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "::set-output name=VERSION::$VERSION"
+          set -euo pipefail
+          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '\r')
+          RELEASE=false
+          NEXT_VERSION=""
+          case "$RELEASE_TYPE" in
+            release) SUFFIX="" ;;
+            rc) SUFFIX="-RC" ;;
+            beta) SUFFIX="-BETA" ;;
+            alpha) SUFFIX="-ALPHA" ;;
+            snapshot) SUFFIX="none" ;;
+            *) echo "::error::unknown release type [${RELEASE_TYPE}]"; exit 1 ;;
+          esac
+          if [[ "$SUFFIX" != "none" ]]; then
+            if [[ "$VERSION" != *-SNAPSHOT ]]; then
+              echo "::error::A release run needs a -SNAPSHOT version in pom.xml (found ${VERSION})"
+              exit 1
+            fi
+            RELEASE_VERSION="${VERSION%-SNAPSHOT}"
+            if ! [[ "$RELEASE_VERSION" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+              echo "::error::[${RELEASE_VERSION}] is not a 4-part release version"
+              exit 1
+            fi
+            PREFIX="${RELEASE_VERSION%.*}"
+            LAST="${RELEASE_VERSION##*.}"
+            NEXT_VERSION="${PREFIX}.$((10#$LAST + 1))-SNAPSHOT"
+            VERSION="${RELEASE_VERSION}${SUFFIX}"
+            if ! [[ "$VERSION" =~ ^[0-9]+(\.[0-9]+){3}(-RC|-BETA|-ALPHA)?$ ]]; then
+              echo "::error::[${VERSION}] is not a valid release version"
+              exit 1
+            fi
+            RELEASE=true
+            echo "Release run: publish ${VERSION}, then bump pom.xml to ${NEXT_VERSION}"
+          fi
+          echo "Using VERSION=${VERSION} RELEASE=${RELEASE} NEXT_VERSION=${NEXT_VERSION}"
+          echo "VERSION=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "RELEASE=${RELEASE}" >> "$GITHUB_OUTPUT"
+          echo "NEXT_VERSION=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Cache Lucee files
         uses: actions/cache@v4
@@ -65,6 +146,26 @@ jobs:
         with:
           java-version: '21'
           distribution: 'temurin'
+
+      # A release run builds the version with -SNAPSHOT removed, the same one deploy publishes.
+      - name: Set the version for this run
+        if: needs.setup.outputs.release == 'true'
+        env:
+          VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - "$VERSION" <<'PY'
+          import pathlib, re, sys
+          new = sys.argv[1]
+          path = pathlib.Path("pom.xml")
+          text = path.read_text()
+          pattern = r"(<artifactId>mongodb-extension</artifactId>\s*<version>)[^<]+(</version>)"
+          text2, n = re.subn(pattern, lambda m: m.group(1) + new + m.group(2), text, count=1)
+          if n != 1:
+              raise SystemExit(f"project version was not updated (matches={n})")
+          path.write_text(text2)
+          print(f"pom.xml version is now {new}")
+          PY
 
       - name: Build and Install with Maven
         run: |
@@ -105,9 +206,9 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    needs: [build-and-test]
-    # deploy only from pushes (or manual runs) on the default branch, never for pull requests or other branches
-    if: always() && needs.build-and-test.result == 'success' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    needs: [setup, build-and-test]
+    # deploy only from pushes or manual runs on publishable branches, never for pull requests or other branches
+    if: always() && needs.build-and-test.result == 'success' && needs.setup.outputs.publish == 'true'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -143,17 +244,43 @@ jobs:
           echo "/tmp/apache-maven-3.9.16/bin" >> "$GITHUB_PATH"
           /tmp/apache-maven-3.9.16/bin/mvn -v
 
+      # A release run publishes the version with -SNAPSHOT removed.
+      - name: Set the version for this run
+        if: needs.setup.outputs.release == 'true'
+        env:
+          VERSION: ${{ needs.setup.outputs.version }}
+        run: |
+          set -euo pipefail
+          python3 - "$VERSION" <<'PY'
+          import pathlib, re, sys
+          new = sys.argv[1]
+          path = pathlib.Path("pom.xml")
+          text = path.read_text()
+          pattern = r"(<artifactId>mongodb-extension</artifactId>\s*<version>)[^<]+(</version>)"
+          text2, n = re.subn(pattern, lambda m: m.group(1) + new + m.group(2), text, count=1)
+          if n != 1:
+              raise SystemExit(f"project version was not updated (matches={n})")
+          path.write_text(text2)
+          print(f"pom.xml version is now {new}")
+          PY
+
       - name: Build and Deploy with Maven
         env:
           MAVEN_USERNAME: ${{ secrets.MAVEN_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
           GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          VERSION: ${{ needs.setup.outputs.version }}
         run: |
-          if [[ "${{ needs.setup.outputs.version }}" == *-SNAPSHOT ]]; then
-            echo "------- Maven Deploy snapshot on ${{ github.event_name }} -------";
+          set -euo pipefail
+          if [[ "${VERSION}" == *-SNAPSHOT ]]; then
+            echo "------- Maven Deploy snapshot ${VERSION} on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy --settings maven-settings.xml
+          elif [[ "${VERSION}" =~ -(RC|BETA|ALPHA)$ ]]; then
+            # pre-releases are not published to Maven Central; the github-release job publishes the .lex
+            echo "------- Maven Install (signed) ${VERSION} on ${{ github.event_name }}, GitHub release only -------";
+            mvn -B -e -f pom.xml clean install -DperformRelease=true --settings maven-settings.xml
           else
-            echo "------- Maven Deploy release on ${{ github.event_name }} -------";
+            echo "------- Maven Deploy release ${VERSION} on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy -DperformRelease=true --settings maven-settings.xml
           fi
 
@@ -172,11 +299,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [setup, deploy]
-    # only from the default branch, like the deploy job
+    # only from publishable branches, like the deploy job
     if: >-
       always() && needs.deploy.result == 'success'
-      && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
-      && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      && needs.setup.outputs.publish == 'true'
       && !endsWith(needs.setup.outputs.version, '-SNAPSHOT')
     permissions:
       # create the release (and its tag) and upload its assets
@@ -223,3 +349,78 @@ jobs:
               --title "$VERSION" \
               --notes "Build $VERSION from commit $GITHUB_SHA, published by $RUN_URL"
           fi
+
+  # After a release deploy, or a SNAPSHOT deploy on a push, commit the next -SNAPSHOT.
+  # No loop: the push uses the workflow token, which does not start another workflow run,
+  # and runs started by github-actions[bot] or with the bump message are skipped anyway.
+  bump:
+    runs-on: ubuntu-latest
+    needs: [setup, deploy]
+    if: >-
+      always() && needs.deploy.result == 'success'
+      && needs.setup.outputs.publish == 'true'
+      && (needs.setup.outputs.release == 'true'
+        || (github.event_name == 'push'
+          && startsWith(github.ref, 'refs/heads/')
+          && endsWith(needs.setup.outputs.version, '-SNAPSHOT')
+          && github.actor != 'github-actions[bot]'
+          && !startsWith(github.event.head_commit.message, 'Set version to ')
+          && !contains(github.event.head_commit.message, '[skip ci]')))
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Bump to the next SNAPSHOT
+        env:
+          NEXT_VERSION: ${{ needs.setup.outputs.next_version }}
+          DEPLOYED_VERSION: ${{ needs.setup.outputs.version }}
+          IS_RELEASE: ${{ needs.setup.outputs.release }}
+        run: |
+          set -euo pipefail
+          if [[ "$IS_RELEASE" != "true" ]]; then
+            # push: bump from the version on the branch tip, only if nobody bumped it since this deploy
+            CURRENT=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | tr -d '\r')
+            if [[ "$CURRENT" != "$DEPLOYED_VERSION" ]]; then
+              echo "Branch is at ${CURRENT}, deployed ${DEPLOYED_VERSION}; already bumped, nothing to do"
+              exit 0
+            fi
+            BASE="${CURRENT%-SNAPSHOT}"
+            if ! [[ "$BASE" =~ ^[0-9]+(\.[0-9]+){3}$ ]]; then
+              echo "::warning::[${CURRENT}] is not a 4-part SNAPSHOT version, not bumping"
+              exit 0
+            fi
+            NEXT_VERSION="${BASE%.*}.$((10#${BASE##*.} + 1))-SNAPSHOT"
+            echo "Push run: bump pom.xml from ${CURRENT} to ${NEXT_VERSION}"
+          fi
+          if [[ -z "$NEXT_VERSION" ]]; then
+            echo "::error::next version was not resolved"
+            exit 1
+          fi
+          python3 - "$NEXT_VERSION" <<'PY'
+          import pathlib, re, sys
+          new = sys.argv[1]
+          path = pathlib.Path("pom.xml")
+          text = path.read_text()
+          pattern = r"(<artifactId>mongodb-extension</artifactId>\s*<version>)[^<]+(</version>)"
+          text2, n = re.subn(pattern, lambda m: m.group(1) + new + m.group(2), text, count=1)
+          if n != 1:
+              raise SystemExit(f"project version was not updated (matches={n})")
+          path.write_text(text2)
+          print(f"pom.xml version is now {new}")
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pom.xml
+          if git diff --cached --quiet; then
+            echo "pom.xml already at ${NEXT_VERSION}"
+            exit 0
+          fi
+          git commit -m "Set version to ${NEXT_VERSION}"
+          git fetch origin "${GITHUB_REF_NAME}"
+          git rebase "origin/${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
