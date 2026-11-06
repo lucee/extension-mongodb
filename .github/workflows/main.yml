@@ -186,6 +186,13 @@ jobs:
           repository: lucee/lucee
           path: lucee
 
+      # Do not replace the locally built full extension with a lite descriptor that
+      # needs an unpublished SNAPSHOT (or bundled OSGi dependencies) from a provider.
+      - name: Select the full extension for testing
+        run: |
+          mkdir -p target/lite
+          mv target/*.lite.lex target/lite/
+
       - name: Run Lucee Test Suite
         uses: lucee/script-runner@main
         with:
