@@ -10,8 +10,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <revision>5.5.1.5-SNAPSHOT</revision>
-    <mongo.version>5.5.1</mongo.version>
+    <revision>5.14.0.1-SNAPSHOT</revision>
+    <mongo.version>5.14.0</mongo.version>
   </properties>
 
   <licenses>

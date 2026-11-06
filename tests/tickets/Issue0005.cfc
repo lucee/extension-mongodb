@@ -18,6 +18,8 @@
  ---><cfscript>
 component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 
+	include "../properties.cfm";
+
 	variables.id=hash(server.lucee.version);
 
 
@@ -26,7 +28,12 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	}
 
 	public function tearDown(){
-		deleteCache();
+		try {
+			deleteCache();
+		} finally {
+			MongoDBConnect(request.cache.mongodb.custom.database, request.cache.mongodb.custom.uri)
+				.getCollection(variables.collectionName).drop();
+		}
 	}
 
 	public void function testDate(){
@@ -83,13 +90,50 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		$assert.isEqual("FooBar",value);
 	}
 	
+	public void function testCacheEnumerationAndCount(){
+		cachePut(id="coverage-one", value="one", cacheName="MongoDBTestCache");
+		cachePut(id="coverage-two", value={"answer":42}, cacheName="MongoDBTestCache");
+		cachePut(id="other", value="untouched", cacheName="MongoDBTestCache");
+		assertEquals(3, cacheCount(cacheName="MongoDBTestCache"));
+		var values = cacheGetAll(filter="coverage-*", cacheName="MongoDBTestCache");
+		assertEquals(2, structCount(values));
+		assertEquals("one", values["coverage-one"]);
+		assertEquals(42, values["coverage-two"].answer);
+		assertEquals(2, arrayLen(cacheGetAllIds(filter="coverage-*", cacheName="MongoDBTestCache")));
+	}
+
+	public void function testCacheOverwriteAndDelete(){
+		cachePut(id="MixedCase", value="first", cacheName="MongoDBTestCache");
+		cachePut(id="MIXEDCASE", value="second", cacheName="MongoDBTestCache");
+		assertEquals(1, cacheCount(cacheName="MongoDBTestCache"));
+		assertEquals("second", cacheGet(id="mixedcase", cacheName="MongoDBTestCache"));
+		assertTrue(cacheIdExists(id="MixedCase", cacheName="MongoDBTestCache"));
+		cacheDelete(id="MIXEDCASE", cacheName="MongoDBTestCache");
+		assertFalse(cacheIdExists(id="mixedcase", cacheName="MongoDBTestCache"));
+		assertTrue(isNull(cacheGet(id="mixedcase", cacheName="MongoDBTestCache")));
+		assertEquals(0, cacheCount(cacheName="MongoDBTestCache"));
+	}
+
+	public void function testCacheClearWithFilter(){
+		cachePut(id="coverage-one", value=1, cacheName="MongoDBTestCache");
+		cachePut(id="coverage-two", value=2, cacheName="MongoDBTestCache");
+		cachePut(id="other", value=3, cacheName="MongoDBTestCache");
+		assertEquals(2, cacheClear(filter="coverage-*", cacheName="MongoDBTestCache"));
+		assertEquals(1, cacheCount(cacheName="MongoDBTestCache"));
+		assertEquals(3, cacheGet(id="other", cacheName="MongoDBTestCache"));
+		assertEquals(1, cacheClear(cacheName="MongoDBTestCache"));
+		assertEquals(0, cacheCount(cacheName="MongoDBTestCache"));
+	}
+
 	private string function createURL(string calledName){
 		var baseURL="http://#cgi.HTTP_HOST##getDirectoryFromPath(contractPath(getCurrenttemplatepath()))#";
 		return baseURL&""&calledName;
 	}
 
 	private function createCache() {
-		include "../properties.cfm";
+		var custom = duplicate(request.cache.mongodb.custom);
+		variables.collectionName = "testcache_" & lcase(replace(createUUID(), "-", "", "all"));
+		custom.collection = variables.collectionName;
 	
 
 		admin 
@@ -100,7 +144,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 			name="MongoDBTestCache" 
 			class="#request.cache.mongodb.class#" 
 			storage="true"
-			custom="#request.cache.mongodb.custom#";
+			custom="#custom#";
 	}
 				
 	private function deleteCache(){

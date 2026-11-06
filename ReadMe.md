@@ -15,7 +15,7 @@ all CFML ↔ BSON type conversions, and exposes a MongoDB-shell-like API directl
 | Dependency | Version |
 |---|---|
 | Lucee | 5.x or 6.x |
-| MongoDB Java driver (bundled) | 5.5.1 |
+| MongoDB Java driver (bundled) | 5.14.0 |
 | MongoDB server | 4.4 or later recommended |
 | Java | 11 or later |
 
@@ -330,7 +330,7 @@ Requirements: JDK 11+, Apache Ant.
 JAVA_HOME=/path/to/jdk11 ant -buildfile build.xml
 
 # output
-target/mongodb-extension-5.5.1.2.lex
+target/mongodb-extension-5.14.0.1-SNAPSHOT.lex
 ```
 
 Install the `.lex` file via the Lucee Server Administrator (**Extensions → Applications**)

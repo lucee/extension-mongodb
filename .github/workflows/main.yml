@@ -186,6 +186,13 @@ jobs:
           repository: lucee/lucee
           path: lucee
 
+      # Do not replace the locally built full extension with a lite descriptor that
+      # needs an unpublished SNAPSHOT (or bundled OSGi dependencies) from a provider.
+      - name: Select the full extension for testing
+        run: |
+          mkdir -p target/lite
+          mv target/*.lite.lex target/lite/
+
       - name: Run Lucee Test Suite
         uses: lucee/script-runner@main
         with:
@@ -198,9 +205,12 @@ jobs:
         env:
           testLabels: mongodb
           testAdditional: ${{ github.workspace }}/tests
-          LUCEE_ENABLE_WARMUP: 'true'
+          # This invocation must execute bootstrap-tests.cfm, not exit after warmup.
+          LUCEE_ENABLE_WARMUP: 'false'
           MONGODB_SERVER: localhost
           MONGODB_PORT: 27017
+          MONGODB_USERNAME: ""
+          MONGODB_PASSWORD: ""
           MONGODB_DB: lucee
           MONGODB_DATABASE: lucee
 

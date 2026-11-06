@@ -13,7 +13,7 @@
   <!-- Default values used when building directly with ant (not via Maven).
        Maven overrides these via maven-antrun-plugin <property> elements. -->
   <property name="filename"        value="mongodb-extension"/>
-  <property name="bundleversion"   value="5.5.1.5-SNAPSHOT"/>
+  <property name="bundleversion"   value="5.14.0.1-SNAPSHOT"/>
   <property name="bundlename"      value="org.lucee.mongodb.extension"/>
   <property name="id"              value="E6634E1A-4CC5-4839-A83C67549ECA8D5B"/>
   <property name="groupId"         value="org.lucee"/>
@@ -132,6 +132,16 @@
     <move file="${dist}/extension/maven/${mvnArtifactId}-${bundleversion}.pom"
           tofile="${dist}/extension/maven/${mvnGroupPath}/${mvnArtifactId}/${bundleversion}/${mvnArtifactId}-${bundleversion}.pom"/>
 
+    <!-- Retain OSGi bundles for FLD lookups and Lucee versions without Maven class loading.
+         A Maven repository entry alone does not register a bundle with Lucee. -->
+    <copy file="source/java/target/${mvnArtifactId}-${bundleversion}.jar"
+          todir="${dist}/extension/jars"/>
+    <copy todir="${dist}/extension/jars" flatten="true">
+      <fileset dir="${temp}/dependency">
+        <include name="org/mongodb/**/*.jar"/>
+      </fileset>
+    </copy>
+
     <!-- Copy all dependencies (MongoDB driver OSGi bundles plus their POMs) -->
     <copy todir="${dist}/extension/maven">
       <fileset dir="${temp}/dependency">
@@ -239,6 +249,7 @@ cache: "[{'class':'${class}','bundleName':'${bundlename}','bundleVersion':'${bun
       <zip destfile="${dist}/${filename}-${bundleversion}.lite.lex">
           <zipfileset dir="${dist}/extension">
             <exclude name="maven/**"/>
+            <exclude name="jars/**"/>
           </zipfileset>
       </zip>
   </target>

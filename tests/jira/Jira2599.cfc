@@ -71,6 +71,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 	// public function setUp(){}
 
 	public function beforeTests() {
+		if (isNotSupported()) return;
 		var uri = "mongodb://#variables.mongoDB.server#:#variables.mongoDB.port#";
 		if (!isempty(variables.mongoDB.user) && !isEmpty(variables.mongoDB.pass))
 			uri = "mongodb://#variables.mongoDB.user#:#variables.mongoDB.pass#@#variables.mongoDB.server#:#variables.mongoDB.port#";
@@ -100,7 +101,7 @@ component extends="org.lucee.cfml.test.LuceeTestCase" labels="mongodb"	{
 		assertEquals("test",mongo.getName());
 	}
 
-	public void function testConnectByURI() {
+	public void function testConnectByURI() skip="isNotSupported" {
 		var uri = "mongodb://#variables.mongoDB.server#:#variables.mongoDB.port#";
 		if (!isempty(variables.mongoDB.user) && !isEmpty(variables.mongoDB.pass))
 			uri = "mongodb://#variables.mongoDB.user#:#variables.mongoDB.pass#@#variables.mongoDB.server#:#variables.mongoDB.port#";
