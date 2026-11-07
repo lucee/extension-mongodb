@@ -1,11 +1,12 @@
 name: Java CI Combined
 
-# Push publishes the -SNAPSHOT version already in pom.xml to the Sonatype snapshot repo.
+# Push publishes the -SNAPSHOT version already in pom.xml to Sonatype and the Lucee Maven repository.
 # A manual run picks a type: release (default) X.Y.Z.N, rc X.Y.Z.N-RC, beta X.Y.Z.N-BETA, alpha X.Y.Z.N-ALPHA
 # (N from the -SNAPSHOT in pom.xml), then commits the next -SNAPSHOT. Type "snapshot" only deploys the current snapshot.
 # Where each version goes:
-#   final (X.Y.Z.N) and -SNAPSHOT: mvn deploy (Maven Central / snapshot repo)
-#   -RC, -BETA, -ALPHA:            mvn install (signed) and a GitHub release; never Central
+#   final (X.Y.Z.N) and -SNAPSHOT: mvn deploy (Maven Central / Sonatype snapshots) plus the Lucee Maven repository
+#   -RC, -BETA, -ALPHA:            signed mvn install, then the Lucee Maven repository and a GitHub release
+# The shared S3/R2 uploader feeds mvn.lucee-services.com; RC/BETA/ALPHA do not go to Central.
 # A push to a branch with a -SNAPSHOT version also commits the next -SNAPSHOT after the deploy,
 # so every commit gets its own build number. The bump commit itself does not bump again.
 on:
@@ -286,25 +287,29 @@ jobs:
             echo "------- Maven Deploy snapshot ${VERSION} on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy -Dgoal=deploy --settings maven-settings.xml
           elif [[ "${VERSION}" =~ -(RC|BETA|ALPHA)$ ]]; then
-            # pre-releases are not published to Maven Central; the github-release job publishes the .lex
-            echo "------- Maven Install (signed) ${VERSION} on ${{ github.event_name }}, GitHub release only -------";
+            # Pre-releases go to the Lucee Maven repository via the s3 job, not Maven Central.
+            echo "------- Maven Install (signed) ${VERSION} on ${{ github.event_name }}, Lucee Maven repository and GitHub release -------";
             mvn -B -e -f pom.xml clean install -Dgoal=install -DperformRelease=true --settings maven-settings.xml
           else
             echo "------- Maven Deploy release ${VERSION} on ${{ github.event_name }} -------";
             mvn -B -e -f pom.xml clean deploy -Dgoal=deploy -DperformRelease=true --settings maven-settings.xml
           fi
 
-      # LDEV-6696: the published .lex files (full and lite) for the github-release job
-      - name: Upload artifact for GitHub release
+      # The repository uploader needs both .lex files and the POM from this exact build.
+      # Reuse the same artifact for non-SNAPSHOT GitHub releases (LDEV-6696).
+      - name: Upload artifact for Lucee Maven repository and GitHub release
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: mongodb-release
-          path: target/*.lex
+          include-hidden-files: true
+          path: |
+            target/*.lex
+            .flattened-pom.xml
 
   # LDEV-6696: publish every final, ALPHA, BETA and RC build as a GitHub release with its .lex files attached,
   # so ext.lucee.org can redirect downloads to GitHub releases (LDEV-6511). -SNAPSHOT builds get no GitHub release.
-  # Separate job, so a failure here never blocks the Maven Central deploy.
+  # Separate job, so a failure here never blocks the Maven Central or Lucee Maven repository upload.
   github-release:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -360,15 +365,28 @@ jobs:
               --notes "Build $VERSION from commit $GITHUB_SHA, published by $RUN_URL"
           fi
 
+  # Match Redis/Quartz: publish the Maven layout through the shared S3/R2 uploader.
+  # This feeds mvn.lucee-services.com, including RC/BETA/ALPHA builds not sent to Central.
+  # The shared workflow owns the S3 snapshot cut-off and independent R2 upload policy.
+  s3:
+    needs: [setup, deploy]
+    if: always() && needs.deploy.result == 'success' && needs.setup.outputs.publish == 'true'
+    uses: lucee/lucee/.github/workflows/extension-s3-upload.yml@7.1
+    with:
+      artifact-name: mongodb-release
+      version: ${{ needs.setup.outputs.version }}
+    secrets: inherit
+
   # After a release deploy, or a SNAPSHOT deploy on a push, commit the next -SNAPSHOT.
   # No loop: the push uses the workflow token, which does not start another workflow run,
   # and runs started by github-actions[bot] or with the bump message are skipped anyway.
   bump:
     runs-on: ubuntu-latest
-    needs: [setup, deploy]
+    needs: [setup, deploy, s3]
     if: >-
       always() && needs.deploy.result == 'success'
       && needs.setup.outputs.publish == 'true'
+      && (needs.s3.result == 'success' || needs.s3.result == 'skipped')
       && (needs.setup.outputs.release == 'true'
         || (github.event_name == 'push'
           && startsWith(github.ref, 'refs/heads/')
